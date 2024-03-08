@@ -7,6 +7,7 @@ import 'package:webapp/api.dart' as A;
 import 'package:webapp/base_model.dart';
 import 'package:webapp/components/message.dart';
 import 'package:webapp/components/presets.dart';
+import 'package:webapp/config.dart';
 import 'package:webapp/utils.dart';
 
 class HomeModel extends BaseModel {
@@ -16,6 +17,10 @@ class HomeModel extends BaseModel {
   List<A.ModelInfo> modelInfos = [];
   String? model;
   A.ModelOutput? output;
+
+  Map<String, Constraint> constraints = {};
+
+  String? constraint;
 
   int _inputBytes = 0;
 
@@ -49,7 +54,7 @@ class HomeModel extends BaseModel {
 
   bool hideModel = false;
 
-  bool hq = true;
+  bool hq = false;
 
   A.Feedback? feedback;
 
@@ -59,6 +64,8 @@ class HomeModel extends BaseModel {
     TextEditingController inputController,
   ) async {
     this.inputController = inputController;
+
+    constraints = await loadConstraints();
 
     final modelRes = await A.api.models();
     if (modelRes.value != null) {
@@ -100,6 +107,7 @@ class HomeModel extends BaseModel {
       [inputString],
       model!,
       hq,
+      constraints[constraint]
     );
     if (result.statusCode == 200) {
       output = result.value!;

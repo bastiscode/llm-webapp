@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:webapp/api.dart';
 
 String formatS(double s) {
@@ -27,4 +28,8 @@ String formatB(double b) {
 String formatRuntime(Runtime runtime) {
   return "Took ${formatS(runtime.clientS)} in total, "
       "thereof ${formatS(runtime.backendS)} in the backend";
+}
+
+Future<String> loadTextAsset(String path) async {
+  return await rootBundle.loadString(path);
 }

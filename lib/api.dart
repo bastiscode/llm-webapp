@@ -239,6 +239,7 @@ class Api {
     List<String> text,
     String model,
     bool highQuality,
+    Constraint? constraint,
   ) async {
     try {
       final stop = Stopwatch()..start();
@@ -248,6 +249,17 @@ class Api {
         "search_strategy": highQuality ? "beam" : "greedy",
         "beam_width": 5,
       };
+      if (constraint != null) {
+        if (constraint.isRegex) {
+          data["regex"] = constraint.regex!;
+        } else {
+          data["cfg"] = {
+            "grammar": constraint.cfgGrammar!,
+            "lexer": constraint.cfgLexer!,
+            "exact": constraint.cfgExact
+          };
+        }
+      }
       final res = await _post(
         "$_baseURL/generate",
         data,

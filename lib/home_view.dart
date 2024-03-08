@@ -462,19 +462,47 @@ class _HomeViewState extends State<HomeView> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             inputTextField(model),
-            if (model.waiting)
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.start,
+              runSpacing: 8,
+              spacing: 8,
+              children: model.constraints.entries.map((pair) {
+                final matching = pair.key == model.constraint;
+                return ChoiceChip(
+                  label: Text(pair.key),
+                  labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                  labelStyle: TextStyle(
+                    color: matching ? Colors.white : Colors.black,
+                    fontSize: 12,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  selected: matching,
+                  selectedColor: uniBlue,
+                  onSelected: (_) {
+                    if (matching) {
+                      model.constraint = null;
+                    } else {
+                      model.constraint = pair.key;
+                    }
+                    model.notifyListeners();
+                  },
+                );
+              }).toList(),
+            ),
+            if (model.waiting) ...[
               const Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                 ),
               ),
-            if (model.hasResults) ...[
-              const SizedBox(height: 8),
+            ] else if (model.hasResults) ...[
               outputField(model)
             ],
-            const SizedBox(height: 8)
+            const SizedBox(height: 16)
           ],
         ),
       ),
