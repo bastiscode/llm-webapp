@@ -154,4 +154,4 @@ ANON '[' {WS}* ']'
 
 // ignore whitespace and comments
 ; {WS}+
-; '#' [^\x0D\x0A]*
+// ; '#' [^\x0D\x0A]*
