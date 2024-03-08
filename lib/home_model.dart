@@ -11,8 +11,6 @@ import 'package:webapp/config.dart';
 import 'package:webapp/utils.dart';
 
 class HomeModel extends BaseModel {
-  static const maxLiveLength = 512;
-
   A.BackendInfo? backendInfo;
   List<A.ModelInfo> modelInfos = [];
   String? model;
@@ -55,10 +53,6 @@ class HomeModel extends BaseModel {
   bool hideModel = false;
 
   bool hq = false;
-
-  A.Feedback? feedback;
-
-  bool get gaveFeedback => feedback != null;
 
   Future<void> init(
     TextEditingController inputController,

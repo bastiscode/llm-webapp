@@ -58,7 +58,6 @@ class _PresetsState extends State<Presets> {
             ),
             visualDensity: VisualDensity.compact,
             selected: matching,
-            selectedColor: uniBlue,
             onSelected: (_) {
               setState(() {
                 widget.onSelected(preset);

@@ -17,13 +17,13 @@ void main() {
     DeviceOrientation.portraitDown
   ]).then(
     (_) => runApp(
-      const SparqlQaApp(),
+      const LLMApp(),
     ),
   );
 }
 
-class SparqlQaApp extends StatelessWidget {
-  const SparqlQaApp({super.key});
+class LLMApp extends StatelessWidget {
+  const LLMApp({super.key});
 
   // This widget is the root of your application.
   @override
@@ -32,7 +32,6 @@ class SparqlQaApp extends StatelessWidget {
       title: title,
       theme: ThemeData(
         brightness: Brightness.light,
-        primaryColor: uniBlue,
         colorScheme: ColorScheme.fromSeed(seedColor: uniBlue),
         inputDecorationTheme: const InputDecorationTheme(
           border: OutlineInputBorder(),

@@ -53,17 +53,7 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> Function() launchOrMessage(String address) {
     return () async {
-      bool success = false;
-      try {
-        success = await launchUrl(Uri.parse(address));
-      } finally {
-        if (!success && mounted) {
-          showMessage(
-            context,
-            Message("could not open $address", Status.error),
-          );
-        }
-      }
+      await launchUrl(Uri.parse(address));
     };
   }
 
@@ -230,10 +220,7 @@ class _HomeViewState extends State<HomeView> {
             value: model.model,
             isExpanded: true,
             decoration: InputDecoration(
-              prefixIcon: Icon(
-                Icons.question_answer_outlined,
-                color: model.validModel ? uniBlue : null,
-              ),
+              prefixIcon: const Icon(Icons.question_answer_outlined),
               suffixIcon: IconButton(
                 splashRadius: 16,
                 tooltip: "Clear model",
@@ -285,9 +272,6 @@ class _HomeViewState extends State<HomeView> {
                       }
                     : null,
                 icon: const Icon(Icons.save, size: 16),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: uniBlue,
-                ),
                 label: const Text("Save model settings"),
               ),
             ],
@@ -475,13 +459,8 @@ class _HomeViewState extends State<HomeView> {
                 return ChoiceChip(
                   label: Text(pair.key),
                   labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                  labelStyle: TextStyle(
-                    color: matching ? Colors.white : Colors.black,
-                    fontSize: 12,
-                  ),
                   visualDensity: VisualDensity.compact,
                   selected: matching,
-                  selectedColor: uniBlue,
                   onSelected: (_) {
                     if (matching) {
                       model.constraint = null;
@@ -518,35 +497,6 @@ class _HomeViewState extends State<HomeView> {
         SelectableText(
           output.output.join("\n"),
         ),
-      ],
-    );
-  }
-
-  Widget resultTable(
-    A.ExecutionResult execution, {
-    int topK = 100,
-  }) {
-    return Table(
-      children: [
-        TableRow(
-          children: execution.vars
-              .map((v) => SelectableText(
-                    v,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ))
-              .toList(),
-        ),
-        ...execution.results.take(topK).map((result) {
-          return TableRow(
-            children: execution.vars
-                .map((v) => (result[v]?.toWidget() ?? const Text("-")))
-                .toList(),
-          );
-        }),
       ],
     );
   }

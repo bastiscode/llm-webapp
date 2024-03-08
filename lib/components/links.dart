@@ -24,7 +24,7 @@ class LinkChip extends StatelessWidget {
               size: 16,
             )
           : null,
-      labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+      labelPadding: const EdgeInsets.fromLTRB(4, 0, 0, 0),
       visualDensity: VisualDensity.compact,
       label: Text(
         link.label,

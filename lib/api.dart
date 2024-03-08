@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:webapp/colors.dart';
 import 'dart:convert';
 
 import 'package:webapp/components/message.dart';
@@ -67,73 +64,6 @@ class ModelOutput {
   );
 }
 
-class Record {
-  String type;
-  String value;
-  String? label;
-
-  Record(this.type, this.value, {this.label});
-
-  Widget toWidget() {
-    switch (type) {
-      case "uri":
-        {
-          String val = value.split("/").last;
-          if (label != null) {
-            val = "$label ($val)";
-          }
-          return Row(
-            children: [
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  child: Text(
-                    val,
-                    style: const TextStyle(color: uniBlue),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () async {
-                    final _ = await launchUrl(Uri.parse(value));
-                  },
-                ),
-              ),
-            ],
-          );
-        }
-      default:
-        // default case, includes literal
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SelectableText(
-            label ?? value,
-          ),
-        );
-    }
-  }
-}
-
-class ExecutionResult {
-  List<String> vars;
-  List<Map<String, Record?>> results;
-
-  ExecutionResult(
-    this.vars,
-    this.results,
-  );
-
-  int get length => results.length;
-}
-
-enum Feedback { helpful, unhelpful }
-
-String feedbackToString(Feedback feedback) {
-  switch (feedback) {
-    case Feedback.helpful:
-      return "helpful";
-    case Feedback.unhelpful:
-      return "unhelpful";
-  }
-}
 
 class Api {
   late final String _baseURL;
