@@ -413,6 +413,18 @@ class _HomeViewState extends State<HomeView> {
                   runSpacing: 8,
                   children: [
                     IconButton(
+                      onPressed: !model.waiting
+                          ? () async {
+                              model.outputs.clear();
+                              model.notifyListeners();
+                            }
+                          : null,
+                      icon: const Icon(Icons.clear),
+                      color: !model.waiting ? uniRed : null,
+                      tooltip: "Clear outputs",
+                      splashRadius: 16,
+                    ),
+                    IconButton(
                       icon: Icon(
                         model.chatMode ? Icons.chat : Icons.chat_outlined,
                       ),
