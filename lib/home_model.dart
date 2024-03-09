@@ -15,7 +15,9 @@ class HomeModel extends BaseModel {
   A.BackendInfo? backendInfo;
   List<A.ModelInfo> modelInfos = [];
   String? model;
-  List<A.ModelOutput> outputs = [];
+  List<A.ModelOutput> outputs = [
+    A.ModelOutput("test", "copy me ```python def main(): print('bla')```also a test", A.Runtime(10, 10, 10))
+  ];
 
   bool chatMode = false;
 
@@ -51,7 +53,7 @@ class HomeModel extends BaseModel {
 
   bool hideModel = false;
 
-  bool hq = false;
+  bool sampling = false;
 
   Future<void> init(
     TextEditingController inputController,
@@ -118,7 +120,7 @@ class HomeModel extends BaseModel {
       inputString,
       chatMode ? getChat(inputString) : null,
       model!,
-      hq,
+      sampling,
       constraints[constraint],
     );
     if (result.statusCode == 200) {

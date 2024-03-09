@@ -5,7 +5,7 @@
 
 json
     : value
-    | '```json' value '```'
+    | 'ANYTHING' 'CODE_BLOCK_START' value 'CODE_BLOCK_END' 'ANYTHING'
     ;
 
 obj

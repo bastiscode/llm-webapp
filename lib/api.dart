@@ -168,15 +168,15 @@ class Api {
     String text,
     List<Map<String, String>>? chat,
     String model,
-    bool highQuality,
+    bool sampling,
     Constraint? constraint,
   ) async {
     try {
       final stop = Stopwatch()..start();
       var data = {
         "model": model,
-        "search_strategy": highQuality ? "beam" : "greedy",
-        "beam_width": 5,
+        "search_strategy": sampling ? "sample" : "greedy",
+        "sample_top_k": 5,
       };
       if (chat == null) {
         data["texts"] = [text];

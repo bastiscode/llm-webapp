@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webapp/api.dart' as A;
 import 'package:webapp/base_view.dart';
@@ -441,17 +442,17 @@ class _HomeViewState extends State<HomeView> {
                     ),
                     IconButton(
                       icon: Icon(
-                        model.hq
-                            ? Icons.high_quality
-                            : Icons.high_quality_outlined,
+                        model.sampling
+                            ? Icons.change_circle
+                            : Icons.change_circle_outlined,
                       ),
                       tooltip:
-                          "${model.hq ? "Disable" : "Enable"} high quality",
+                          "${model.sampling ? "Disable" : "Enable"} determinism",
                       splashRadius: 16,
                       onPressed: () {
                         setState(
                           () {
-                            model.hq = !model.hq;
+                            model.sampling = !model.sampling;
                           },
                         );
                       },
@@ -496,17 +497,94 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget outputCard(String text, bool user) {
+    List<Widget> children = [];
+    int lastEnd = 0;
+    for (final match in RegExp(r"```([A-Za-z_]*)\s(.*)```").allMatches(text)) {
+      children.add(SelectableText(text.substring(lastEnd, match.start)));
+      var language = match.group(1)!.toUpperCase();
+      if (language.isEmpty) {
+        language = "UNKNOWN";
+      }
+      final code = match.group(2)!;
+      children.addAll([
+        const SizedBox(height: 8),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Colors.black, width: 1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          margin: EdgeInsets.zero,
+          child: wrapPadding(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      language,
+                      textScaler: const TextScaler.linear(0.75),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: code));
+                      },
+                      tooltip: "Copy to clipboard",
+                      iconSize: 16,
+                      splashRadius: 20,
+                      icon: const Icon(Icons.copy),
+                    )
+                  ],
+                ),
+                const Divider(thickness: 1, height: 16),
+                SelectableText(code)
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ]);
+      lastEnd = match.end;
+    }
+    if (text.length > lastEnd) {
+      children.add(SelectableText(text.substring(lastEnd, text.length)));
+    } else if (children.isNotEmpty) {
+      children.removeLast();
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(user ? Icons.person : Icons.computer),
+        Icon(
+          user ? Icons.person : Icons.computer,
+          size: 18,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Card(
             margin: EdgeInsets.zero,
-            child: wrapPadding(SelectableText(text.trim())),
+            child: wrapPadding(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children,
+              ),
+            ),
           ),
         ),
+        const SizedBox(width: 4),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: text));
+          },
+          tooltip: "Copy to clipboard",
+          iconSize: 18,
+          icon: const Icon(Icons.copy),
+        )
       ],
     );
   }
