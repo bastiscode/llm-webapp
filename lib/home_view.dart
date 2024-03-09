@@ -499,13 +499,18 @@ class _HomeViewState extends State<HomeView> {
   Widget outputCard(String text, bool user) {
     List<Widget> children = [];
     int lastEnd = 0;
-    for (final match in RegExp(r"```([A-Za-z_]*)\s(.*)```").allMatches(text)) {
+    for (final match in RegExp(
+      r"```([A-Za-z_]*)\s(.*)```",
+      multiLine: true,
+      dotAll: true,
+      unicode: true,
+    ).allMatches(text)) {
       children.add(SelectableText(text.substring(lastEnd, match.start)));
       var language = match.group(1)!.toUpperCase();
       if (language.isEmpty) {
         language = "UNKNOWN";
       }
-      final code = match.group(2)!;
+      final code = match.group(2)!.trim();
       children.addAll([
         const SizedBox(height: 8),
         Card(
