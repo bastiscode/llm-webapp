@@ -109,7 +109,11 @@ class HomeModel extends BaseModel {
 
   Future<void> run(String inputString) async {
     _waiting = true;
+    if (!chatMode) {
+      outputs.clear();
+    }
     notifyListeners();
+
     final result = await A.api.generate(
       inputString,
       chatMode ? getChat(inputString) : null,
@@ -118,9 +122,6 @@ class HomeModel extends BaseModel {
       constraints[constraint],
     );
     if (result.statusCode == 200) {
-      if (!chatMode) {
-        outputs.clear();
-      }
       outputs.add(result.value!);
       _inputBytes = numBytes(inputString);
     } else {
