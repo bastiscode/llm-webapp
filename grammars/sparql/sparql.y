@@ -4,6 +4,7 @@
 
 QueryUnit
     : Query
+    | 'CODE_BLOCK_START' Query '```'
     ;
 
 QueryType

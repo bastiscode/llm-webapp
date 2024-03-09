@@ -17,6 +17,9 @@ PN_LOCAL_ESC '\' ( '_' | '~' | '.' | '-' | '!' | '$' | '&' | "'" | '(' | ')' | '
 
 %%
 
+// custom
+CODE_BLOCK_START '```' [a-z]*
+
 // SPARQL keywords
 BASE        (?i)BASE
 PREFIX      (?i)PREFIX

@@ -4,7 +4,8 @@
 %%
 
 json
-    : value 
+    : value
+    | '```json' value '```'
     ;
 
 obj
