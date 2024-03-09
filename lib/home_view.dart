@@ -65,6 +65,7 @@ class _HomeViewState extends State<HomeView> {
       onModelReady: (model) async {
         await model.init(inputController);
         showModelSelection = !model.validModel;
+        model.notifyListeners();
       },
       builder: (context, model, child) {
         Future.delayed(
