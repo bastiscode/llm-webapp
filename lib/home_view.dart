@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 
 import 'package:flutter/material.dart';
@@ -34,7 +36,7 @@ class _HomeViewState extends State<HomeView> {
   final TextEditingController inputController = TextEditingController();
   final FocusNode inputFocus = FocusNode();
 
-  bool showPipelineInfo = false;
+  bool showModelSelection = false;
 
   @override
   void initState() {
@@ -62,6 +64,7 @@ class _HomeViewState extends State<HomeView> {
     return BaseView<HomeModel>(
       onModelReady: (model) async {
         await model.init(inputController);
+        showModelSelection = !model.validModel;
       },
       builder: (context, model, child) {
         Future.delayed(
@@ -108,21 +111,16 @@ class _HomeViewState extends State<HomeView> {
         }
         return SafeArea(
           child: Scaffold(
-            body: SingleChildScrollView(
-              child: wrapPadding(
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    buildInputOutput(model),
-                    const SizedBox(height: 8),
-                    buildPipeline(model),
-                    if (links.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      buildLinks(),
-                    ]
-                  ],
-                ),
+            body: wrapPadding(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  buildHeading(model),
+                  const SizedBox(height: 8),
+                  Expanded(child: buildOutputs(model)),
+                  const SizedBox(height: 8),
+                  buildInput(model)
+                ],
               ),
             ),
           ),
@@ -131,152 +129,84 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget buildLinks() {
-    return Card(
-      elevation: 2,
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      child: ExpansionTile(
-        maintainState: true,
-        initiallyExpanded: false,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: const Text("Additional material"),
-        childrenPadding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: 16,
-        ),
-        expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: links
-                .map(
-                  (l) => LinkChip(l, launchOrMessage(l.url)),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildPipeline(HomeModel model) {
-    String? infoText;
-    if (model.validModel) {
-      final info = model.modelInfos.firstWhere(
-        (info) => info.name == model.model,
-      );
-      infoText = info.description;
-      if (info.tags.isNotEmpty) {
-        infoText += " (${info.tags.join(', ')})";
-      }
-    }
-    final validPresets = presets
-        .where(
-          (preset) => model.isValidPreset(preset),
-        )
-        .toList();
+  Widget buildHeading(HomeModel model) {
     return Card(
       margin: EdgeInsets.zero,
-      elevation: 2,
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        maintainState: true,
-        initiallyExpanded: !model.validModel,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: const Text(
-          "Model selection",
-          style: TextStyle(fontSize: 18),
-        ),
-        subtitle: const Text(
-          "The model determines quality and latency of the generated answer",
-        ),
-        childrenPadding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: 16,
-        ),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (validPresets.isNotEmpty) ...[
-            Presets(
-              presets: validPresets,
-              model: model.model,
-              onSelected: (preset) {
-                setState(
-                  () {
-                    if (preset == null) {
-                      model.model = null;
-                    } else {
-                      model.model = preset.model;
-                    }
-                  },
-                );
-              },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: links
+                      .map((l) => LinkChip(l, launchOrMessage(l.url)))
+                      .toList(),
+                ),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: launchOrMessage(
+                      "https://ad.informatik.uni-freiburg.de",
+                    ),
+                    child: SizedBox(
+                      width: 160,
+                      child: Image.network(
+                        "${A.api.webBaseURL}"
+                        "/assets/images/logo.png",
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              trailing: Wrap(
+                runSpacing: 8,
+                spacing: 8,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.info_outlined,
+                    ),
+                    splashRadius: 16,
+                    tooltip: "Show backend information",
+                    onPressed: () {
+                      if (model.backendInfo == null) {
+                        showMessage(
+                          context,
+                          Message(
+                            "backend info not available",
+                            Status.warn,
+                          ),
+                        );
+                        return;
+                      }
+                      showInfoDialog(
+                        model.backendInfo!,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              title: const Text(
+                title,
+                style: TextStyle(fontSize: 22),
+              ),
+              subtitle: const Text(
+                description,
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
           ],
-          DropdownButtonFormField<String>(
-            value: model.model,
-            isExpanded: true,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.question_answer_outlined),
-              suffixIcon: IconButton(
-                splashRadius: 16,
-                tooltip: "Clear model",
-                color: uniRed,
-                icon: const Icon(Icons.clear),
-                onPressed: model.validModel
-                    ? () {
-                        setState(() {
-                          model.model = null;
-                        });
-                      }
-                    : null,
-              ),
-              hintText: "Select a model",
-              labelText: "Text generation model",
-              helperMaxLines: 10,
-              helperText: infoText,
-            ),
-            icon: const Icon(Icons.arrow_drop_down_rounded),
-            items: model.modelInfos.map<DropdownMenuItem<String>>(
-              (modelInfo) {
-                return DropdownMenuItem(
-                  value: modelInfo.name,
-                  child: Text(modelInfo.name),
-                );
-              },
-            ).toList(),
-            onChanged: (String? modelName) {
-              if (modelName == null) return;
-              setState(() {
-                model.model = modelName;
-              });
-            },
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton.icon(
-                onPressed: model.validModel
-                    ? () async {
-                        await model.saveModel();
-                        setState(() {
-                          showMessage(
-                            context,
-                            Message("Saved model settings", Status.info),
-                          );
-                        });
-                      }
-                    : null,
-                icon: const Icon(Icons.save, size: 16),
-                label: const Text("Save model settings"),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -285,57 +215,7 @@ class _HomeViewState extends State<HomeView> {
     final canRun =
         model.validModel && !model.waiting && inputController.text.isNotEmpty;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: launchOrMessage(
-              "https://ad.informatik.uni-freiburg.de",
-            ),
-            child: SizedBox(
-              width: 160,
-              child: Image.network(
-                "${A.api.webBaseURL}"
-                "/assets/images/logo.png",
-              ),
-            ),
-          ),
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          trailing: IconButton(
-            icon: const Icon(
-              Icons.info_outlined,
-            ),
-            splashRadius: 16,
-            tooltip: "Show backend information",
-            onPressed: () {
-              if (model.backendInfo == null) {
-                showMessage(
-                  context,
-                  Message(
-                    "backend info not available",
-                    Status.warn,
-                  ),
-                );
-                return;
-              }
-              showInfoDialog(
-                model.backendInfo!,
-              );
-            },
-          ),
-          title: const Text(
-            title,
-            style: TextStyle(fontSize: 22),
-          ),
-          subtitle: const Text(
-            description,
-            style: TextStyle(fontSize: 14),
-          ),
-        ),
         const SizedBox(height: 8),
         TextField(
           controller: model.inputController,
@@ -353,8 +233,9 @@ class _HomeViewState extends State<HomeView> {
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             hintText: "Enter your prompt",
-            helperText:
-                model.hasResults ? formatRuntime(model.output!.runtime) : null,
+            helperText: model.hasResults
+                ? formatRuntime(model.outputs.last.runtime)
+                : null,
             helperMaxLines: 2,
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
@@ -362,9 +243,14 @@ class _HomeViewState extends State<HomeView> {
                 IconButton(
                   onPressed: canRun
                       ? () async {
+                          final numOutputs = model.outputs.length;
                           await model.run(
                             model.inputController.text,
                           );
+                          if (model.outputs.length > numOutputs) {
+                            model.inputController.text = "";
+                            model.notifyListeners();
+                          }
                         }
                       : null,
                   icon: const Icon(Icons.start),
@@ -372,65 +258,6 @@ class _HomeViewState extends State<HomeView> {
                   tooltip: "Run model on prompt",
                   splashRadius: 16,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.clear),
-                  tooltip: "Clear prompt",
-                  splashRadius: 16,
-                  color: uniRed,
-                  onPressed: !model.waiting && model.hasInput
-                      ? () {
-                          setState(
-                            () {
-                              model.inputController.value =
-                                  const TextEditingValue(
-                                text: "",
-                                selection: TextSelection.collapsed(offset: 0),
-                              );
-                            },
-                          );
-                        }
-                      : null,
-                ),
-                IconButton(
-                  icon: Icon(
-                    model.hq ? Icons.high_quality : Icons.high_quality_outlined,
-                  ),
-                  tooltip: "${model.hq ? "Disable" : "Enable"} high quality",
-                  splashRadius: 16,
-                  onPressed: () {
-                    setState(
-                      () {
-                        model.hq = !model.hq;
-                      },
-                    );
-                  },
-                ),
-                if (examples.isNotEmpty)
-                  IconButton(
-                    onPressed: !model.waiting
-                        ? () async {
-                            final example = await showExamplesDialog(
-                              examples,
-                            );
-                            if (example != null) {
-                              setState(
-                                () {
-                                  inputController.value = TextEditingValue(
-                                    text: example,
-                                    composing: TextRange.collapsed(
-                                      example.length,
-                                    ),
-                                  );
-                                  inputFocus.requestFocus();
-                                },
-                              );
-                            }
-                          }
-                        : null,
-                    icon: const Icon(Icons.list),
-                    tooltip: "Choose an example prompt",
-                    splashRadius: 16,
-                  ),
               ],
             ),
           ),
@@ -439,65 +266,251 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget buildInputOutput(HomeModel model) {
+  Widget buildInput(HomeModel model) {
+    String? infoText;
+    if (model.validModel) {
+      final info = model.modelInfos.firstWhere(
+        (info) => info.name == model.model,
+      );
+      infoText = info.description;
+      if (info.tags.isNotEmpty) {
+        infoText += " (${info.tags.join(', ')})";
+      }
+    }
+    final validPresets =
+        presets.where((preset) => model.isValidPreset(preset)).toList();
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            inputTextField(model),
-            const SizedBox(height: 16),
-            Wrap(
-              alignment: WrapAlignment.start,
-              runSpacing: 8,
-              spacing: 8,
-              children: model.constraints.entries.map((pair) {
-                final matching = pair.key == model.constraint;
-                return ChoiceChip(
-                  label: Text(pair.key),
-                  labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                  visualDensity: VisualDensity.compact,
-                  selected: matching,
-                  onSelected: (_) {
-                    if (matching) {
-                      model.constraint = null;
-                    } else {
-                      model.constraint = pair.key;
-                    }
-                    model.notifyListeners();
-                  },
-                );
-              }).toList(),
-            ),
-            if (model.waiting) ...[
-              const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  showModelSelection = !showModelSelection;
+                });
+              },
+              icon: Transform.rotate(
+                angle: -pi / 2,
+                child: Icon(
+                  showModelSelection ? Icons.chevron_left : Icons.chevron_right,
                 ),
               ),
-            ] else if (model.hasResults) ...[
-              outputField(model)
+            ),
+            if (showModelSelection) ...[
+              const SizedBox(height: 8),
+              if (validPresets.isNotEmpty) ...[
+                Presets(
+                  presets: validPresets,
+                  model: model.model,
+                  onSelected: (preset) {
+                    setState(
+                      () {
+                        if (preset == null) {
+                          model.model = null;
+                        } else {
+                          model.model = preset.model;
+                        }
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 8)
+              ],
+              DropdownButtonFormField<String>(
+                value: model.model,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.question_answer_outlined),
+                  suffixIcon: IconButton(
+                    splashRadius: 16,
+                    tooltip: "Clear model",
+                    color: uniRed,
+                    icon: const Icon(Icons.clear),
+                    onPressed: model.validModel
+                        ? () {
+                            setState(() {
+                              model.model = null;
+                            });
+                          }
+                        : null,
+                  ),
+                  hintText: "Select a model",
+                  labelText: "Text generation model",
+                  helperMaxLines: 10,
+                  helperText: infoText,
+                ),
+                icon: const Icon(Icons.arrow_drop_down_rounded),
+                items: model.modelInfos.map<DropdownMenuItem<String>>(
+                  (modelInfo) {
+                    return DropdownMenuItem(
+                      value: modelInfo.name,
+                      child: Text(modelInfo.name),
+                    );
+                  },
+                ).toList(),
+                onChanged: (String? modelName) {
+                  if (modelName == null) return;
+                  setState(() {
+                    model.model = modelName;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: model.validModel
+                        ? () async {
+                            await model.saveModel();
+                            setState(() {
+                              showMessage(
+                                context,
+                                Message("Saved model settings", Status.info),
+                              );
+                            });
+                          }
+                        : null,
+                    icon: const Icon(Icons.save, size: 16),
+                    label: const Text("Save model settings"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
             ],
-            const SizedBox(height: 16)
+            inputTextField(model),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Wrap(
+                  runSpacing: 8,
+                  spacing: 8,
+                  children: model.constraints.entries.map((pair) {
+                    final matching = pair.key == model.constraint;
+                    return ChoiceChip(
+                      label: Text(pair.key),
+                      labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                      visualDensity: VisualDensity.compact,
+                      selected: matching,
+                      onSelected: (_) {
+                        if (matching) {
+                          model.constraint = null;
+                        } else {
+                          model.constraint = pair.key;
+                        }
+                        model.notifyListeners();
+                      },
+                    );
+                  }).toList(),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        model.hq
+                            ? Icons.high_quality
+                            : Icons.high_quality_outlined,
+                      ),
+                      tooltip:
+                          "${model.hq ? "Disable" : "Enable"} high quality",
+                      splashRadius: 16,
+                      onPressed: () {
+                        setState(
+                          () {
+                            model.hq = !model.hq;
+                          },
+                        );
+                      },
+                    ),
+                    if (examples.isNotEmpty)
+                      IconButton(
+                        onPressed: !model.waiting
+                            ? () async {
+                                final example = await showExamplesDialog(
+                                  examples,
+                                );
+                                if (example == null) {
+                                  return;
+                                }
+                                if (model.constraints.containsKey(example[0])) {
+                                  model.constraint = example[0];
+                                } else {
+                                  model.constraint = null;
+                                }
+                                inputController.value = TextEditingValue(
+                                  text: example[1],
+                                  composing: TextRange.collapsed(
+                                    example.length,
+                                  ),
+                                );
+                                inputFocus.requestFocus();
+                                model.notifyListeners();
+                              }
+                            : null,
+                        icon: const Icon(Icons.list),
+                        tooltip: "Choose an example prompt",
+                        splashRadius: 16,
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget outputField(HomeModel model) {
-    final output = model.output!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget outputCard(String text, bool user) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 16),
-        SelectableText(
-          output.output.join("\n"),
+        Icon(user ? Icons.person : Icons.computer),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: wrapPadding(SelectableText(text)),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget buildOutputs(HomeModel model) {
+    List<Widget> children = [];
+    if (model.waiting) {
+      children.add(const SizedBox(height: 8));
+      children.add(
+        const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+    children.addAll(
+      model.outputs.reversed
+          .map(
+            (output) => [
+              const SizedBox(height: 8),
+              outputCard(output.output.join("\n"), false),
+              const SizedBox(height: 8),
+              outputCard(output.input.join("\n"), true),
+            ],
+          )
+          .flattened,
+    );
+    return ListView(
+      reverse: true,
+      children: children.sublist(min(1, children.length)),
     );
   }
 
@@ -567,7 +580,7 @@ class _HomeViewState extends State<HomeView> {
   Widget exampleGroup(
     String groupName,
     List<String> items,
-    Function(String) onSelected,
+    Function(List<String>) onSelected,
   ) {
     return Card(
       elevation: 2,
@@ -595,7 +608,7 @@ class _HomeViewState extends State<HomeView> {
                   visualDensity: VisualDensity.compact,
                   title: Text(items[idx]),
                   subtitle: Text("Example ${idx + 1}"),
-                  onTap: () => onSelected(items[idx]),
+                  onTap: () => onSelected([groupName, items[idx]]),
                   // leading: const Icon(Icons.notes),
                 );
               },
@@ -606,8 +619,9 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Future<String?> showExamplesDialog(Map<String, List<String>> examples) async {
-    return await showDialog<String?>(
+  Future<List<String>?> showExamplesDialog(
+      Map<String, List<String>> examples) async {
+    return await showDialog<List<String>?>(
       context: context,
       builder: (dialogContext) {
         final exampleGroups = examples.entries

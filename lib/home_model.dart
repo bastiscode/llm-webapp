@@ -14,7 +14,9 @@ class HomeModel extends BaseModel {
   A.BackendInfo? backendInfo;
   List<A.ModelInfo> modelInfos = [];
   String? model;
-  A.ModelOutput? output;
+  List<A.ModelOutput> outputs = [];
+
+  bool chatMode = true;
 
   Map<String, Constraint> constraints = {};
 
@@ -42,11 +44,7 @@ class HomeModel extends BaseModel {
 
   bool get waiting => _waiting;
 
-  bool get hasResults => output != null;
-
-  double get totalClientRuntime => output?.runtime.clientS ?? 0.0;
-
-  double get totalBackendRuntime => output?.runtime.backendS ?? 0.0;
+  bool get hasResults => outputs.isNotEmpty;
 
   bool get hasInput => inputController.text.isNotEmpty;
 
@@ -95,16 +93,18 @@ class HomeModel extends BaseModel {
 
   Future<void> run(String inputString) async {
     _waiting = true;
-    output = null;
+    if (!chatMode) {
+      outputs.clear();
+    }
     notifyListeners();
     final result = await A.api.generateText(
       [inputString],
       model!,
       hq,
-      constraints[constraint]
+      constraints[constraint],
     );
     if (result.statusCode == 200) {
-      output = result.value!;
+      outputs.add(result.value!);
       _inputBytes = numBytes(inputString);
     } else {
       messages.add(A.errorMessageFromApiResult(result));
