@@ -76,9 +76,11 @@ Future<Map<String, Constraint>> loadConstraints() async {
 // examples
 const Map<String, List<String>> examples = {
   "JSON": [
-    "Generate a simple JSON example document: ",
+    "Generate a simple JSON example document:",
   ],
-  "SPARQL": ["Generate a simple SPARQL example query over Wikidata: "]
+  "SPARQL": [
+    "Generate a simple SPARQL example query over Wikidata:",
+  ]
 };
 
 // display clickable choice chips inside pipeline selection
