@@ -15,9 +15,7 @@ class HomeModel extends BaseModel {
   A.BackendInfo? backendInfo;
   List<A.ModelInfo> modelInfos = [];
   String? model;
-  List<A.ModelOutput> outputs = [
-    A.ModelOutput("test", "copy me ```python def main(): print('bla')```also a test", A.Runtime(10, 10, 10))
-  ];
+  List<A.ModelOutput> outputs = [];
 
   bool chatMode = false;
 
