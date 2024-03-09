@@ -16,7 +16,7 @@ class HomeModel extends BaseModel {
   String? model;
   List<A.ModelOutput> outputs = [];
 
-  bool chatMode = true;
+  bool chatMode = false;
 
   Map<String, Constraint> constraints = {};
 
