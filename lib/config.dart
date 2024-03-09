@@ -60,8 +60,8 @@ class Constraint {
 
 Future<Map<String, Constraint>> loadConstraints() async {
   return {
-    "Boolean": Constraint.withRegex(r"yes|no"),
-    "Integer": Constraint.withRegex(r"0|[1-9]+[0-9]"),
+    "Boolean": Constraint.withRegex(r"\s?(yes|no)"),
+    "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
     "SPARQL": Constraint.withGrammar(
       await loadTextAsset("grammars/sparql/sparql.y"),
       await loadTextAsset("grammars/sparql/sparql.l"),

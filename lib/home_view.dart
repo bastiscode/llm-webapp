@@ -414,6 +414,21 @@ class _HomeViewState extends State<HomeView> {
                   children: [
                     IconButton(
                       icon: Icon(
+                        model.chatMode ? Icons.chat : Icons.chat_outlined,
+                      ),
+                      tooltip:
+                          "${model.chatMode ? "Disable" : "Enable"} chat mode",
+                      splashRadius: 16,
+                      onPressed: () {
+                        setState(
+                          () {
+                            model.chatMode = !model.chatMode;
+                          },
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
                         model.hq
                             ? Icons.high_quality
                             : Icons.high_quality_outlined,
@@ -477,7 +492,7 @@ class _HomeViewState extends State<HomeView> {
         Expanded(
           child: Card(
             margin: EdgeInsets.zero,
-            child: wrapPadding(SelectableText(text)),
+            child: wrapPadding(SelectableText(text.trim())),
           ),
         ),
       ],
@@ -501,9 +516,9 @@ class _HomeViewState extends State<HomeView> {
           .map(
             (output) => [
               const SizedBox(height: 8),
-              outputCard(output.output.join("\n"), false),
+              outputCard(output.output, false),
               const SizedBox(height: 8),
-              outputCard(output.input.join("\n"), true),
+              outputCard(output.input, true),
             ],
           )
           .flattened,
@@ -620,7 +635,8 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<List<String>?> showExamplesDialog(
-      Map<String, List<String>> examples) async {
+    Map<String, List<String>> examples,
+  ) async {
     return await showDialog<List<String>?>(
       context: context,
       builder: (dialogContext) {

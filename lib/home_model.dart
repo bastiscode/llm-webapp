@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webapp/api.dart' as A;
@@ -91,19 +92,35 @@ class HomeModel extends BaseModel {
     return modelInfos.indexWhere((info) => info.name == preset.model) != -1;
   }
 
+  List<Map<String, String>> getChat(String inputString) {
+    return outputs
+            .map(
+              (output) => [
+                {"role": "user", "text": output.input},
+                {"role": "assistant", "text": output.output}
+              ],
+            )
+            .flattened
+            .toList() +
+        [
+          {"role": "user", "text": inputString}
+        ];
+  }
+
   Future<void> run(String inputString) async {
     _waiting = true;
-    if (!chatMode) {
-      outputs.clear();
-    }
     notifyListeners();
-    final result = await A.api.generateText(
-      [inputString],
+    final result = await A.api.generate(
+      inputString,
+      chatMode ? getChat(inputString) : null,
       model!,
       hq,
       constraints[constraint],
     );
     if (result.statusCode == 200) {
+      if (!chatMode) {
+        outputs.clear();
+      }
       outputs.add(result.value!);
       _inputBytes = numBytes(inputString);
     } else {

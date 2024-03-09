@@ -53,8 +53,8 @@ class Runtime {
 }
 
 class ModelOutput {
-  List<String> input;
-  List<String> output;
+  String input;
+  String output;
   Runtime runtime;
 
   ModelOutput(
@@ -63,7 +63,6 @@ class ModelOutput {
     this.runtime,
   );
 }
-
 
 class Api {
   late final String _baseURL;
@@ -165,8 +164,9 @@ class Api {
     );
   }
 
-  Future<ApiResult<ModelOutput>> generateText(
-    List<String> text,
+  Future<ApiResult<ModelOutput>> generate(
+    String text,
+    List<Map<String, String>>? chat,
     String model,
     bool highQuality,
     Constraint? constraint,
@@ -174,11 +174,15 @@ class Api {
     try {
       final stop = Stopwatch()..start();
       var data = {
-        "text": text,
         "model": model,
         "search_strategy": highQuality ? "beam" : "greedy",
         "beam_width": 5,
       };
+      if (chat == null) {
+        data["texts"] = [text];
+      } else {
+        data["chats"] = [chat];
+      }
       if (constraint != null) {
         if (constraint.isRegex) {
           data["regex"] = constraint.regex!;
@@ -200,9 +204,10 @@ class Api {
           message: "text generation failed: ${res.message}",
         );
       }
+      final List<String> texts = res.value["texts"].cast<String>();
       final output = ModelOutput(
         text,
-        res.value["text"].cast<String>(),
+        texts.first,
         Runtime.fromJson(
           res.value["runtime"],
           stop.elapsedMicroseconds / 1e6,
