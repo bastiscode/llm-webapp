@@ -18,7 +18,7 @@ PN_LOCAL_ESC '\' ( '_' | '~' | '.' | '-' | '!' | '$' | '&' | "'" | '(' | ')' | '
 %%
 
 // custom
-ANYTHING            .+
+ANYTHING            [^`]+
 CODE_BLOCK_START    '```' [A-Za-z_]*
 CODE_BLOCK_END      '```'
 

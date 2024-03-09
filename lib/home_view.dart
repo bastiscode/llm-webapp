@@ -505,7 +505,10 @@ class _HomeViewState extends State<HomeView> {
       dotAll: true,
       unicode: true,
     ).allMatches(text)) {
-      children.add(SelectableText(text.substring(lastEnd, match.start)));
+      final sub = text.substring(lastEnd, match.start).trim();
+      if (sub.isNotEmpty) {
+        children.add(SelectableText(sub));
+      }
       var language = match.group(1)!.toUpperCase();
       if (language.isEmpty) {
         language = "UNKNOWN";
@@ -557,7 +560,10 @@ class _HomeViewState extends State<HomeView> {
       lastEnd = match.end;
     }
     if (text.length > lastEnd) {
-      children.add(SelectableText(text.substring(lastEnd, text.length)));
+      final sub = text.substring(lastEnd, text.length).trim();
+      if (sub.isNotEmpty) {
+        children.add(SelectableText(sub));
+      }
     } else if (children.isNotEmpty) {
       children.removeLast();
     }
