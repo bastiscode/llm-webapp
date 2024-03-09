@@ -51,7 +51,7 @@ class HomeModel extends BaseModel {
 
   bool hideModel = false;
 
-  bool sampling = false;
+  bool sampling = true;
 
   Future<void> init(
     TextEditingController inputController,

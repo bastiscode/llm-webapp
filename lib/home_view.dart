@@ -447,7 +447,7 @@ class _HomeViewState extends State<HomeView> {
                             : Icons.change_circle_outlined,
                       ),
                       tooltip:
-                          "${model.sampling ? "Disable" : "Enable"} determinism",
+                          "${!model.sampling ? "Disable" : "Enable"} determinism",
                       splashRadius: 16,
                       onPressed: () {
                         setState(
