@@ -84,7 +84,7 @@ const Map<String, List<String>> examples = {
     "Is Berlin larger than Germany?",
   ],
   "Integer": [
-    "How tall in meters is Mount Everest?",
+    "How tall is Mount Everest in meters?",
   ],
   "CoT": [
     "Is Berlin larger than Germany?",
