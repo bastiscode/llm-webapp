@@ -62,6 +62,11 @@ Future<Map<String, Constraint>> loadConstraints() async {
   return {
     "Boolean": Constraint.withRegex(r"\s?(true|false)"),
     "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
+    "CoT": Constraint.withRegex(
+      r"""Reasoning:
+  (?:[1-9]+\. [\w ]+\n){,20}
+Answer: .+""",
+    ),
     "SPARQL": Constraint.withGrammar(
       await loadTextAsset("grammars/sparql/sparql.y"),
       await loadTextAsset("grammars/sparql/sparql.l"),
@@ -75,6 +80,16 @@ Future<Map<String, Constraint>> loadConstraints() async {
 
 // examples
 const Map<String, List<String>> examples = {
+  "Boolean": [
+    "Is Berlin larger than Germany?",
+  ],
+  "Integer": [
+    "How tall in meters is Mount Everest?",
+  ],
+  "CoT": [
+    "Is Berlin larger than Germany?",
+    "What is the next number in the sequence 2, 4, 8, 16, ...?"
+  ],
   "JSON": [
     "Generate a simple JSON example document:",
   ],
