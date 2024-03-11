@@ -64,8 +64,8 @@ Future<Map<String, Constraint>> loadConstraints() async {
     "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
     "CoT": Constraint.withRegex(
       r"""Reasoning:
-(([1-9]|[1-9][0-9]+)\. ([\w ]+){1,128}\n){1,20}
-Answer: ([\w ]+){1,128}"""
+(([1-9]|[1-9][0-9]+)\. [\w ]{1,128}\n){1,20}
+Answer: [\w ]{1,128}"""
     ),
     "SPARQL": Constraint.withGrammar(
       await loadTextAsset("grammars/sparql/sparql.y"),
