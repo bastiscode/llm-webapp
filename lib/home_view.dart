@@ -35,9 +35,12 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final TextEditingController inputController = TextEditingController();
+  final TextEditingController regexController = TextEditingController();
+  final TextEditingController grammarController = TextEditingController();
+  final TextEditingController lexerController = TextEditingController();
   final FocusNode inputFocus = FocusNode();
 
-  bool showModelSelection = false;
+  bool showMore = false;
 
   @override
   void initState() {
@@ -64,8 +67,13 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext homeContext) {
     return BaseView<HomeModel>(
       onModelReady: (model) async {
-        await model.init(inputController);
-        showModelSelection = !model.validModel;
+        await model.init(
+          inputController,
+          regexController,
+          grammarController,
+          lexerController,
+        );
+        showMore = !model.validModel;
       },
       builder: (context, model, child) {
         Future.delayed(
@@ -100,7 +108,12 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      await model.init(inputController);
+                      await model.init(
+                        inputController,
+                        regexController,
+                        grammarController,
+                        lexerController,
+                      );
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text("Reload"),
@@ -287,23 +300,23 @@ class _HomeViewState extends State<HomeView> {
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: ListView(
+          shrinkWrap: true,
           children: [
             IconButton(
               onPressed: () {
                 setState(() {
-                  showModelSelection = !showModelSelection;
+                  showMore = !showMore;
                 });
               },
               icon: Transform.rotate(
                 angle: -pi / 2,
                 child: Icon(
-                  showModelSelection ? Icons.chevron_left : Icons.chevron_right,
+                  showMore ? Icons.chevron_left : Icons.chevron_right,
                 ),
               ),
             ),
-            if (showModelSelection) ...[
+            if (showMore) ...[
               const SizedBox(height: 8),
               if (validPresets.isNotEmpty) ...[
                 Presets(
@@ -355,140 +368,205 @@ class _HomeViewState extends State<HomeView> {
                     );
                   },
                 ).toList(),
-                onChanged: (String? modelName) {
+                onChanged: (String? modelName) async {
                   if (modelName == null) return;
+                  await model.saveModel();
                   setState(() {
                     model.model = modelName;
                   });
                 },
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: model.validModel
-                        ? () async {
-                            await model.saveModel();
-                            setState(() {
-                              showMessage(
-                                context,
-                                Message("Saved model settings", Status.info),
-                              );
-                            });
-                          }
-                        : null,
-                    icon: const Icon(Icons.save, size: 16),
-                    label: const Text("Save model settings"),
+              if (model.constraint == customRegexConstraint) ...[
+                const SizedBox(height: 8),
+                TextField(
+                  controller: regexController,
+                  keyboardType: TextInputType.multiline,
+                  minLines: 1,
+                  maxLines: 10,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: "Define your regular expression",
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
+                ),
+              ],
+              if (model.constraint == customCfgConstraint) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: lexerController,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 1,
+                        maxLines: 10,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: "Define your lexer",
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: grammarController,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 1,
+                        maxLines: 10,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: "Define your grammar",
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
             ],
             inputTextField(model),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Wrap(
-                  runSpacing: 8,
-                  spacing: 8,
-                  children: model.constraints.entries.map((pair) {
-                    final matching = pair.key == model.constraint;
-                    return ChoiceChip(
-                      label: Text(pair.key),
-                      labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                      visualDensity: VisualDensity.compact,
-                      selected: matching,
-                      onSelected: (_) {
-                        if (matching) {
-                          model.constraint = null;
-                        } else {
-                          model.constraint = pair.key;
-                        }
-                        model.notifyListeners();
-                      },
-                    );
-                  }).toList(),
-                ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    IconButton(
-                      onPressed: !model.waiting
-                          ? () async {
-                              model.outputs.clear();
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.start,
+                    runSpacing: 8,
+                    spacing: 8,
+                    children: model.constraints.entries.map((pair) {
+                          final matching = pair.key == model.constraint;
+                          return ChoiceChip(
+                            label: Text(pair.key),
+                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                            visualDensity: VisualDensity.compact,
+                            selected: matching,
+                            onSelected: (_) {
+                              if (matching) {
+                                model.constraint = null;
+                              } else {
+                                model.constraint = pair.key;
+                              }
                               model.notifyListeners();
-                            }
-                          : null,
-                      icon: const Icon(Icons.clear),
-                      color: !model.waiting ? uniRed : null,
-                      tooltip: "Clear outputs",
-                      splashRadius: 16,
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        model.chatMode ? Icons.chat : Icons.chat_outlined,
-                      ),
-                      tooltip:
-                          "${model.chatMode ? "Disable" : "Enable"} chat mode",
-                      splashRadius: 16,
-                      onPressed: () {
-                        setState(
-                          () {
-                            model.chatMode = !model.chatMode;
-                          },
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        model.sampling
-                            ? Icons.change_circle
-                            : Icons.change_circle_outlined,
-                      ),
-                      tooltip:
-                          "${!model.sampling ? "Disable" : "Enable"} determinism",
-                      splashRadius: 16,
-                      onPressed: () {
-                        setState(
-                          () {
-                            model.sampling = !model.sampling;
-                          },
-                        );
-                      },
-                    ),
-                    if (examples.isNotEmpty)
+                            },
+                          );
+                        }).toList() +
+                        [
+                          ChoiceChip(
+                            label: const Text(customRegexConstraint),
+                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                            visualDensity: VisualDensity.compact,
+                            selected: model.constraint == customRegexConstraint,
+                            onSelected: (_) {
+                              if (model.constraint == customRegexConstraint) {
+                                model.constraint = null;
+                              } else {
+                                model.constraint = customRegexConstraint;
+                              }
+                              model.notifyListeners();
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text(customCfgConstraint),
+                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                            visualDensity: VisualDensity.compact,
+                            selected: model.constraint == customCfgConstraint,
+                            onSelected: (_) {
+                              if (model.constraint == customCfgConstraint) {
+                                model.constraint = null;
+                              } else {
+                                model.constraint = customCfgConstraint;
+                              }
+                              model.notifyListeners();
+                            },
+                          ),
+                        ],
+                  ),
+                ),
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
                       IconButton(
                         onPressed: !model.waiting
                             ? () async {
-                                final example = await showExamplesDialog(
-                                  examples,
-                                );
-                                if (example == null) {
-                                  return;
-                                }
-                                if (model.constraints.containsKey(example[0])) {
-                                  model.constraint = example[0];
-                                } else {
-                                  model.constraint = null;
-                                }
-                                inputController.value = TextEditingValue(
-                                  text: example[1],
-                                  composing: TextRange.collapsed(
-                                    example.length,
-                                  ),
-                                );
-                                inputFocus.requestFocus();
+                                model.outputs.clear();
                                 model.notifyListeners();
                               }
                             : null,
-                        icon: const Icon(Icons.list),
-                        tooltip: "Choose an example prompt",
+                        icon: const Icon(Icons.clear),
+                        color: !model.waiting ? uniRed : null,
+                        tooltip: "Clear outputs",
                         splashRadius: 16,
                       ),
-                  ],
+                      IconButton(
+                        icon: Icon(
+                          model.chatMode ? Icons.chat : Icons.chat_outlined,
+                        ),
+                        tooltip:
+                            "${model.chatMode ? "Disable" : "Enable"} chat mode",
+                        splashRadius: 16,
+                        onPressed: () {
+                          setState(
+                            () {
+                              model.chatMode = !model.chatMode;
+                            },
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          model.sampling
+                              ? Icons.change_circle
+                              : Icons.change_circle_outlined,
+                        ),
+                        tooltip:
+                            "${!model.sampling ? "Disable" : "Enable"} determinism",
+                        splashRadius: 16,
+                        onPressed: () {
+                          setState(
+                            () {
+                              model.sampling = !model.sampling;
+                            },
+                          );
+                        },
+                      ),
+                      if (examples.isNotEmpty)
+                        IconButton(
+                          onPressed: !model.waiting
+                              ? () async {
+                                  final example = await showExamplesDialog(
+                                    examples,
+                                  );
+                                  if (example == null) {
+                                    return;
+                                  }
+                                  if (model.constraints
+                                      .containsKey(example[0])) {
+                                    model.constraint = example[0];
+                                  } else {
+                                    model.constraint = null;
+                                  }
+                                  inputController.value = TextEditingValue(
+                                    text: example[1],
+                                    composing: TextRange.collapsed(
+                                      example.length,
+                                    ),
+                                  );
+                                  inputFocus.requestFocus();
+                                  model.notifyListeners();
+                                }
+                              : null,
+                          icon: const Icon(Icons.list),
+                          tooltip: "Choose an example prompt",
+                          splashRadius: 16,
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

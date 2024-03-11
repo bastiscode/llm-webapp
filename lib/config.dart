@@ -57,6 +57,8 @@ class Constraint {
 }
 
 // constraints
+const String customRegexConstraint = "Custom regex";
+const String customCfgConstraint = "Custom cfg";
 
 Future<Map<String, Constraint>> loadConstraints() async {
   return {

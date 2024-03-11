@@ -31,6 +31,11 @@ class HomeModel extends BaseModel {
 
   late TextEditingController inputController;
 
+  late TextEditingController regexController;
+
+  late TextEditingController grammarController;
+  late TextEditingController lexerController;
+
   bool get validModel =>
       model != null &&
       modelInfos.indexWhere((info) => info.name == model!) != -1;
@@ -49,14 +54,18 @@ class HomeModel extends BaseModel {
 
   bool get hasInput => inputController.text.isNotEmpty;
 
-  bool hideModel = false;
-
   bool sampling = true;
 
   Future<void> init(
     TextEditingController inputController,
+    TextEditingController regexController,
+    TextEditingController grammarController,
+    TextEditingController lexerController,
   ) async {
     this.inputController = inputController;
+    this.regexController = regexController;
+    this.grammarController = grammarController;
+    this.lexerController = lexerController;
 
     constraints = await loadConstraints();
 
@@ -71,11 +80,9 @@ class HomeModel extends BaseModel {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    hideModel = prefs.getBool("hideModel") ?? false;
     model = prefs.getString("model");
     if (!validModel) {
-      model = null;
-      hideModel = false;
+      model = modelInfos.firstOrNull?.name;
     }
 
     _ready = true;
@@ -83,9 +90,11 @@ class HomeModel extends BaseModel {
   }
 
   saveModel() async {
+    if (model == null) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     prefs.setString("model", model!);
-    prefs.setBool("hideModel", hideModel);
   }
 
   bool isValidPreset(Preset preset) {
@@ -114,12 +123,22 @@ class HomeModel extends BaseModel {
     }
     notifyListeners();
 
+    Constraint? ct = constraints[constraint];
+    if (constraint == customRegexConstraint) {
+      ct = Constraint.withRegex(regexController.text);
+    } else if (constraint == customCfgConstraint) {
+      ct = Constraint.withGrammar(
+        grammarController.text,
+        lexerController.text,
+      );
+    }
+
     final result = await A.api.generate(
       inputString,
       chatMode ? getChat(inputString) : null,
       model!,
       sampling,
-      constraints[constraint],
+      ct,
     );
     if (result.statusCode == 200) {
       outputs.add(result.value!);
