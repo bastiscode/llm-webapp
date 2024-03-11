@@ -63,7 +63,7 @@ const String customCfgConstraint = "Custom cfg";
 Future<Map<String, Constraint>> loadConstraints() async {
   return {
     "Boolean": Constraint.withRegex(r"\s?(true|false)"),
-    "Number": Constraint.withRegex(r"\s?\d{1,3}(,\d{3})*(\.\d+)?"),
+    "Number": Constraint.withRegex(r"\s?\d{1,3}(,\d{3})*(\.\d{1, 2})?"),
     "CoT": Constraint.withRegex(
       r"""Reasoning:
 ([1-5]\. [\w ]+\n){1,5}
@@ -93,10 +93,10 @@ Berlin is larger than Germany""",
   ],
   "Number": [
     """How tall is Mont Blanc in meters? 
-4809
+4,809
 
 How tall is K2 in meters?
-8611
+8,611
     
 How tall is Mount Everest in meters?""",
   ],
