@@ -248,7 +248,9 @@ class _HomeViewState extends State<HomeView> {
                           await model.run(
                             model.inputController.text,
                           );
-                          if (model.outputs.length > numOutputs) {
+                          if (!model.chatMode ||
+                              (model.chatMode &&
+                                  model.outputs.length > numOutputs)) {
                             model.inputController.text = "";
                             model.notifyListeners();
                           }
