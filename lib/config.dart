@@ -63,8 +63,8 @@ Future<Map<String, Constraint>> loadConstraints() async {
     "Boolean": Constraint.withRegex(r"\s?(true|false)"),
     "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
     "CoT": Constraint.withRegex(
-      r"""Reasoning:
-  (([1-9]|[1-9][0-9]+)\. [\w ]+\n){1,20}
+      r"""Reasoning (between 1 and 20 steps):
+(([1-9]|[1-9][0-9]+)\. [\w ]+\n){1,20}
 Answer: [\w ]+"""
     ),
     "SPARQL": Constraint.withGrammar(
