@@ -64,7 +64,7 @@ Future<Map<String, Constraint>> loadConstraints() async {
     "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
     "CoT": Constraint.withRegex(
       r"""Reasoning:
-([1-5]\. [\w ]{1,128}\n){1,5}
+([1-5]\. [\w ]+\n){1,5}
 Answer: [\w ]{1,128}""",
     ),
     "SPARQL": Constraint.withGrammar(
@@ -87,10 +87,10 @@ const Map<String, List<String>> examples = {
     "How tall is Mount Everest in meters?",
   ],
   "CoT": [
-    "Is Berlin larger than Germany? Perform at most 20 reasoning steps and "
-        "stay within a 128 character limit for each step as well as your final answer.",
-    "What is the next number in the sequence 2, 4, 8, 16, ...? Perform at most 20 reasoning steps and "
-        "stay within a 128 character limit for each step as well as your final answer.",
+    "Is Berlin larger than Germany? Perform at most 5 reasoning steps and "
+        "stay within a 128 character limit for your final answer.",
+    "What is the next number in the sequence 2, 4, 8, 16, ...? Perform at most 5 reasoning steps and "
+        "stay within a 128 character limit for your final answer.",
   ],
   "JSON": [
     "Generate a simple JSON example document:",
