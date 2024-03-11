@@ -102,6 +102,7 @@ How tall is Mount Everest in meters?""",
     """For each of the following questions, perform at most 5 reasoning steps and stay within a 128 character limit for your final answer.
 
 Does 45 * 3 equal 130?
+Reasoning:
 1. 45 * 3 = 135
 2. 135 != 130
 
@@ -111,6 +112,7 @@ Is Berlin larger than Germany?""",
     """For each of the following questions, perform at most 5 reasoning steps and stay within a 128 character limit for your final answer.
 
 Does 45 * 3 equal 130?
+Reasoning:
 1. 45 * 3 = 135
 2. 135 != 130
 
