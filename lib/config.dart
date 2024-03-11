@@ -62,10 +62,10 @@ Future<Map<String, Constraint>> loadConstraints() async {
   return {
     "Boolean": Constraint.withRegex(r"\s?(true|false)"),
     "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
-    // "SPARQL": Constraint.withGrammar(
-    //   await loadTextAsset("grammars/sparql/sparql.y"),
-    //   await loadTextAsset("grammars/sparql/sparql.l"),
-    // ),
+    "SPARQL": Constraint.withGrammar(
+      await loadTextAsset("grammars/sparql/sparql.y"),
+      await loadTextAsset("grammars/sparql/sparql.l"),
+    ),
     "JSON": Constraint.withGrammar(
       await loadTextAsset("grammars/json/json.y"),
       await loadTextAsset("grammars/json/json.l"),
