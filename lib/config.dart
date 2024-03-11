@@ -81,16 +81,42 @@ Answer: [\w ]{1,128}""",
 // examples
 const Map<String, List<String>> examples = {
   "Boolean": [
-    "Is Berlin larger than Germany?",
+    """WW2 started in 1934
+false
+
+Eiffel tower is 300m tall
+true
+    
+Berlin is larger than Germany""",
   ],
   "Integer": [
-    "How tall is Mount Everest in meters?",
+    """How tall is Mont Blanc in meters? 
+4809
+
+How tall is K2 in meters?
+8611
+    
+How tall is Mount Everest in meters?""",
   ],
   "CoT": [
-    "Is Berlin larger than Germany? Perform at most 5 reasoning steps and "
-        "stay within a 128 character limit for your final answer.",
-    "What is the next number in the sequence 2, 4, 8, 16, ...? Perform at most 5 reasoning steps and "
-        "stay within a 128 character limit for your final answer.",
+    """For each of the following questions, perform at most 5 reasoning steps and stay within a 128 character limit for your final answer.
+
+Does 45 * 3 equal 130?
+1. 45 * 3 = 135
+2. 135 != 130
+
+Answer: 45 * 3 does not equal 135.
+    
+Is Berlin larger than Germany?""",
+    """For each of the following questions, perform at most 5 reasoning steps and stay within a 128 character limit for your final answer.
+
+Does 45 * 3 equal 130?
+1. 45 * 3 = 135
+2. 135 != 130
+
+Answer: 45 * 3 does not equal 135.
+    
+What is the next number in the sequence 2, 4, 8, 16, ...?""",
   ],
   "JSON": [
     "Generate a simple JSON example document:",
