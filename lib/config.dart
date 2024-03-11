@@ -63,9 +63,9 @@ Future<Map<String, Constraint>> loadConstraints() async {
     "Boolean": Constraint.withRegex(r"\s?(true|false)"),
     "Integer": Constraint.withRegex(r"\s?(0|[1-9]+[0-9])"),
     "CoT": Constraint.withRegex(
-      r"""Reasoning (between 1 and 20 steps):
-(([1-9]|[1-9][0-9]+)\. [\w ]+\n){1,20}
-Answer: [\w ]+"""
+      r"""Reasoning:
+(([1-9]|[1-9][0-9]+)\. ([\w ]+){1,128}\n){1,20}
+Answer: ([\w ]+){1,128}"""
     ),
     "SPARQL": Constraint.withGrammar(
       await loadTextAsset("grammars/sparql/sparql.y"),
@@ -87,8 +87,10 @@ const Map<String, List<String>> examples = {
     "How tall is Mount Everest in meters?",
   ],
   "CoT": [
-    "Is Berlin larger than Germany?",
-    "What is the next number in the sequence 2, 4, 8, 16, ...?"
+    "Is Berlin larger than Germany? Perform at most 20 reasoning steps and "
+        "stay within a 128 character limit for each step as well as your final answer.",
+    "What is the next number in the sequence 2, 4, 8, 16, ...? Perform at most 20 reasoning steps and "
+        "stay within a 128 character limit for each step as well as your final answer.",
   ],
   "JSON": [
     "Generate a simple JSON example document:",
