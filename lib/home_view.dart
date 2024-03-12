@@ -304,6 +304,10 @@ class _HomeViewState extends State<HomeView> {
           shrinkWrap: true,
           children: [
             IconButton(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              iconSize: 24,
+              constraints: const BoxConstraints(maxHeight: 24),
               onPressed: () {
                 setState(() {
                   showMore = !showMore;
