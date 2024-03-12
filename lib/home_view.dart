@@ -146,6 +146,7 @@ class _HomeViewState extends State<HomeView> {
   Widget buildHeading(HomeModel model) {
     return Card(
       margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: Column(
@@ -298,6 +299,7 @@ class _HomeViewState extends State<HomeView> {
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: ListView(
@@ -661,6 +663,8 @@ class _HomeViewState extends State<HomeView> {
         const SizedBox(width: 8),
         Expanded(
           child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             margin: EdgeInsets.zero,
             child: wrapPadding(
               Column(
@@ -720,6 +724,8 @@ class _HomeViewState extends State<HomeView> {
       context: context,
       builder: (infoContext) {
         return SimpleDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          clipBehavior: Clip.antiAlias,
           titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           contentPadding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
           title: const Text(
@@ -731,6 +737,8 @@ class _HomeViewState extends State<HomeView> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Card(
                 margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4)),
                 elevation: 2,
                 child: Column(
                   children: [
@@ -784,6 +792,8 @@ class _HomeViewState extends State<HomeView> {
   ) {
     return Card(
       elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
@@ -799,18 +809,24 @@ class _HomeViewState extends State<HomeView> {
                 ),
               ),
             ),
-            ListView.builder(
+            ListView.separated(
               itemCount: items.length,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (listContext, idx) {
+              itemBuilder: (_, idx) {
                 return ListTile(
                   visualDensity: VisualDensity.compact,
                   title: Text(items[idx]),
-                  subtitle: Text("Example ${idx + 1}"),
+                  subtitle: Text(
+                    "Example ${idx + 1}",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   onTap: () => onSelected([groupName, items[idx]]),
                   // leading: const Icon(Icons.notes),
                 );
+              },
+              separatorBuilder: (_, __) {
+                return const Divider(height: 1);
               },
             )
           ],
@@ -836,6 +852,8 @@ class _HomeViewState extends State<HomeView> {
             .toList()
             .cast<Widget>();
         return Dialog(
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(8),
