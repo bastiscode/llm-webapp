@@ -21,7 +21,7 @@ class HomeModel extends BaseModel {
 
   Map<String, Constraint> constraints = {};
 
-  String? constraint;
+  String? constraint = customRegexConstraint;
 
   int _inputBytes = 0;
 
@@ -64,6 +64,8 @@ class HomeModel extends BaseModel {
   ) async {
     this.inputController = inputController;
     this.regexController = regexController;
+
+
     this.grammarController = grammarController;
     this.lexerController = lexerController;
 

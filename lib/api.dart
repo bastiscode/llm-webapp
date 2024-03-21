@@ -175,8 +175,9 @@ class Api {
       final stop = Stopwatch()..start();
       var data = {
         "model": model,
-        "search_strategy": sampling ? "sample" : "greedy",
-        "sample_top_k": 5,
+        "sampling_strategy": sampling ? "top_p" : "greedy",
+        "top_k": 100,
+        "top_p": 0.99
       };
       if (chat == null) {
         data["texts"] = [text];

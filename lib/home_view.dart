@@ -38,9 +38,10 @@ class _HomeViewState extends State<HomeView> {
   final TextEditingController regexController = TextEditingController();
   final TextEditingController grammarController = TextEditingController();
   final TextEditingController lexerController = TextEditingController();
+  final ScrollController scrollController = ScrollController();
   final FocusNode inputFocus = FocusNode();
 
-  bool showMore = false;
+  bool showMore = true;
 
   @override
   void initState() {
@@ -49,11 +50,128 @@ class _HomeViewState extends State<HomeView> {
     inputController.addListener(() {
       setState(() {});
     });
+    inputFocus.requestFocus();
+    regexController.text = r"""
+PERCENT [1-9]?[0-9] '%'
+BOOL (true|false)
+DIGITS \d+
+%%
+\{
+    "patient_id": "{DIGITS}",
+    "vessels": \{
+        "lm": \{
+            "stenosis": "{PERCENT}"
+        \},
+        "lca": \{
+            "stenosis": "{PERCENT}"
+        \},
+        "lcx": \{
+            "stenosis": "{PERCENT}"
+        \},
+        "rca": \{
+            "stenosis": "{PERCENT}"
+        \},
+    \},
+    "modifiers": \{
+        "global_N": {BOOL},
+        "N": {BOOL},
+        "S": {BOOL},
+        "G": {BOOL},
+        "E": {BOOL},
+        "HRP": {BOOL},
+        "specific_risk_count": [1-5],
+        "calcification_score": [1-9]?[0-9]?[0-9],
+        "FFR": [1-5],
+        "CTP": [0-5]
+    \}
+\} 
+""";
+
+    inputController.text = r"""
+{
+    "patient_id": <number>,
+    "vessels": {
+        "lm": {
+            "stenosis": <percentage score>
+        },
+        "lca": {
+            "stenosis": <percentage score>
+        },
+        "lcx": {
+            "stenosis": <percentage score>
+        },
+        "rca": {
+            "stenosis": <percentage score>
+        },
+    },
+    "modifiers": {
+        "global_N": <bool>,
+        "N": <bool>,
+        "S": <bool>,
+        "G": <bool>,
+        "E": <bool>,
+        "HRP": <bool>,
+        "specific_risk_count": <score between 1 and 5>,
+        "calcification_score": <score reaching from 0 to over 400>,
+        "FFR": <score between 1 and 5>,
+        "CTP": <score between 0 and 5>
+    }
+}
+
+Fill out the JSON template above given the following patient record in German language:
+
+Keine Voraufnahmen.
+
+Koronarkalk–CT:
+
+Der gesamte Agatston Score beträgt 210.
+
+Koronar-Angiographie–CT:
+
+Versorgertyp:
+
+Rechtsversorgertyp
+
+Bildqualität/Beurteilbarkeit:
+
+Keine relevanten Artefakte, somit diagnostische Bildqualität gegeben.
+
+LM:
+
+Regelrechter Abgang aus der linkskoronaren Tasche. Kein Nachweis einer Stenose.
+
+LAD:
+
+Gemischt-verkalkte Plaques mit hieraus resultierender Stenose von 75% im
+proximalen Abschnitt. Sonst keine Stenose.
+
+LCX:
+
+Kein Nachweis einer relevanten Plaque und keine Stenose.
+
+RCA:
+
+Ursprung aus der rechtskoronaren Tasche. Im mittleren Abschnitt zeigt sich eine
+geringe Stenose von ca. 40% bei verkalkte Plaques.
+In der zusätzlich durchgeführten CT-FFR zeigte sich für die LAD ein Wert von 0.71
+
+Weitere Befunde:
+
+Aorta mit geringen atherosklerotischen Veränderungen. Kein Pleura- und
+Perikarderguss. Lymphknoten in normaler Größe. Oberbauch soweit erfasst
+unauffällig. Wirbelkörperhämangiom in BWK 11.
+
+""";
   }
 
   @override
   void dispose() {
     inputController.dispose();
+    grammarController.dispose();
+    lexerController.dispose();
+    regexController.dispose();
+    scrollController.dispose();
+    inputFocus.dispose();
     super.dispose();
   }
 
@@ -73,7 +191,9 @@ class _HomeViewState extends State<HomeView> {
           grammarController,
           lexerController,
         );
-        showMore = !model.validModel;
+        // setState(() {
+        // showMore = !model.validModel;
+        // });
       },
       builder: (context, model, child) {
         Future.delayed(
@@ -229,57 +349,49 @@ class _HomeViewState extends State<HomeView> {
   Widget inputTextField(HomeModel model) {
     final canRun =
         model.validModel && !model.waiting && inputController.text.isNotEmpty;
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        TextField(
-          controller: model.inputController,
-          readOnly: model.waiting,
-          onSubmitted: canRun
-              ? (text) async {
-                  await model.run(text);
-                }
-              : null,
-          keyboardType: TextInputType.multiline,
-          minLines: 1,
-          maxLines: 10,
-          focusNode: inputFocus,
-          autofocus: true,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            hintText: "Enter your prompt",
-            helperText: model.hasResults
-                ? formatRuntime(model.outputs.last.runtime)
-                : null,
-            helperMaxLines: 2,
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: canRun
-                      ? () async {
-                          final numOutputs = model.outputs.length;
-                          await model.run(
-                            model.inputController.text,
-                          );
-                          if ((!model.chatMode && model.outputs.isNotEmpty) ||
-                              (model.chatMode &&
-                                  model.outputs.length > numOutputs)) {
-                            model.inputController.text = "";
-                            model.notifyListeners();
-                          }
-                        }
-                      : null,
-                  icon: const Icon(Icons.start),
-                  color: uniBlue,
-                  tooltip: "Run model on prompt",
-                  splashRadius: 16,
-                ),
-              ],
+    return TextField(
+      controller: model.inputController,
+      readOnly: model.waiting,
+      maxLines: 10,
+      onSubmitted: canRun
+          ? (text) async {
+              await model.run(text);
+            }
+          : null,
+      keyboardType: TextInputType.multiline,
+      focusNode: inputFocus,
+      decoration: InputDecoration(
+        border: const OutlineInputBorder(),
+        hintText: "Enter your prompt",
+        helperText:
+            model.hasResults ? formatRuntime(model.outputs.last.runtime) : null,
+        helperMaxLines: 2,
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: canRun
+                  ? () async {
+                      final numOutputs = model.outputs.length;
+                      await model.run(
+                        model.inputController.text,
+                      );
+                      if ((!model.chatMode && model.outputs.isNotEmpty) ||
+                          (model.chatMode &&
+                              model.outputs.length > numOutputs)) {
+                        model.inputController.text = "";
+                        model.notifyListeners();
+                      }
+                    }
+                  : null,
+              icon: const Icon(Icons.start),
+              color: uniBlue,
+              tooltip: "Run model on prompt",
+              splashRadius: 16,
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -300,12 +412,13 @@ class _HomeViewState extends State<HomeView> {
       elevation: 2,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            IconButton(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: IconButton(
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
               iconSize: 24,
@@ -322,262 +435,270 @@ class _HomeViewState extends State<HomeView> {
                 ),
               ),
             ),
-            if (showMore) ...[
-              const SizedBox(height: 8),
-              if (validPresets.isNotEmpty) ...[
-                Presets(
-                  presets: validPresets,
-                  model: model.model,
-                  onSelected: (preset) {
-                    setState(
-                      () {
-                        if (preset == null) {
-                          model.model = null;
-                        } else {
-                          model.model = preset.model;
-                        }
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 8)
-              ],
-              DropdownButtonFormField<String>(
-                value: model.model,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.question_answer_outlined),
-                  suffixIcon: IconButton(
-                    splashRadius: 16,
-                    tooltip: "Clear model",
-                    color: uniRed,
-                    icon: const Icon(Icons.clear),
-                    onPressed: model.validModel
-                        ? () {
-                            setState(() {
+          ),
+          SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Column(
+              children: [
+                if (showMore) ...[
+                  const SizedBox(height: 8),
+                  if (validPresets.isNotEmpty) ...[
+                    Presets(
+                      presets: validPresets,
+                      model: model.model,
+                      onSelected: (preset) {
+                        setState(
+                          () {
+                            if (preset == null) {
                               model.model = null;
-                            });
-                          }
-                        : null,
-                  ),
-                  hintText: "Select a model",
-                  labelText: "Text generation model",
-                  helperMaxLines: 10,
-                  helperText: infoText,
-                ),
-                icon: const Icon(Icons.arrow_drop_down_rounded),
-                items: model.modelInfos.map<DropdownMenuItem<String>>(
-                  (modelInfo) {
-                    return DropdownMenuItem(
-                      value: modelInfo.name,
-                      child: Text(modelInfo.name),
-                    );
-                  },
-                ).toList(),
-                onChanged: (String? modelName) async {
-                  if (modelName == null) return;
-                  await model.saveModel();
-                  setState(() {
-                    model.model = modelName;
-                  });
-                },
-              ),
-              if (model.constraint == customRegexConstraint) ...[
-                const SizedBox(height: 8),
-                TextField(
-                  controller: regexController,
-                  keyboardType: TextInputType.multiline,
-                  minLines: 1,
-                  maxLines: 10,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: "Define your regular expression",
-                  ),
-                ),
-              ],
-              if (model.constraint == customCfgConstraint) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: lexerController,
-                        keyboardType: TextInputType.multiline,
-                        minLines: 1,
-                        maxLines: 10,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: "Define your lexer",
-                        ),
-                      ),
+                            } else {
+                              model.model = preset.model;
+                            }
+                          },
+                        );
+                      },
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: grammarController,
-                        keyboardType: TextInputType.multiline,
-                        minLines: 1,
-                        maxLines: 10,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: "Define your grammar",
-                        ),
+                    const SizedBox(height: 8)
+                  ],
+                  DropdownButtonFormField<String>(
+                    value: model.model,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.question_answer_outlined),
+                      suffixIcon: IconButton(
+                        splashRadius: 16,
+                        tooltip: "Clear model",
+                        color: uniRed,
+                        icon: const Icon(Icons.clear),
+                        onPressed: model.validModel
+                            ? () {
+                                setState(() {
+                                  model.model = null;
+                                });
+                              }
+                            : null,
+                      ),
+                      hintText: "Select a model",
+                      labelText: "Text generation model",
+                      helperMaxLines: 10,
+                      helperText: infoText,
+                    ),
+                    icon: const Icon(Icons.arrow_drop_down_rounded),
+                    items: model.modelInfos.map<DropdownMenuItem<String>>(
+                      (modelInfo) {
+                        return DropdownMenuItem(
+                          value: modelInfo.name,
+                          child: Text(modelInfo.name),
+                        );
+                      },
+                    ).toList(),
+                    onChanged: (String? modelName) async {
+                      if (modelName == null) return;
+                      await model.saveModel();
+                      setState(() {
+                        model.model = modelName;
+                      });
+                    },
+                  ),
+                  if (model.constraint == customRegexConstraint) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: regexController,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 10,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: "Define your regular expression",
                       ),
                     ),
                   ],
-                )
-              ],
-            ],
-            inputTextField(model),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Wrap(
-                    alignment: WrapAlignment.start,
-                    runSpacing: 8,
-                    spacing: 8,
-                    children: model.constraints.entries.map((pair) {
-                          final matching = pair.key == model.constraint;
-                          return ChoiceChip(
-                            label: Text(pair.key),
-                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                            visualDensity: VisualDensity.compact,
-                            selected: matching,
-                            onSelected: (_) {
-                              if (matching) {
-                                model.constraint = null;
-                              } else {
-                                model.constraint = pair.key;
-                              }
-                              model.notifyListeners();
-                            },
-                          );
-                        }).toList() +
-                        [
-                          ChoiceChip(
-                            label: const Text(customRegexConstraint),
-                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                            visualDensity: VisualDensity.compact,
-                            selected: model.constraint == customRegexConstraint,
-                            onSelected: (_) {
-                              if (model.constraint == customRegexConstraint) {
-                                model.constraint = null;
-                              } else {
-                                model.constraint = customRegexConstraint;
-                              }
-                              model.notifyListeners();
-                            },
+                  if (model.constraint == customCfgConstraint) ...[
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          TextField(
+                            controller: lexerController,
+                            keyboardType: TextInputType.multiline,
+                            maxLines: 10,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "Define your lexer",
+                            ),
                           ),
-                          ChoiceChip(
-                            label: const Text(customCfgConstraint),
-                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                            visualDensity: VisualDensity.compact,
-                            selected: model.constraint == customCfgConstraint,
-                            onSelected: (_) {
-                              if (model.constraint == customCfgConstraint) {
-                                model.constraint = null;
-                              } else {
-                                model.constraint = customCfgConstraint;
-                              }
-                              model.notifyListeners();
-                            },
+                          const SizedBox(width: 8),
+                          TextField(
+                            controller: grammarController,
+                            keyboardType: TextInputType.multiline,
+                            maxLines: 10,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "Define your grammar",
+                            ),
                           ),
                         ],
-                  ),
-                ),
-                Expanded(
-                  child: Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      IconButton(
-                        onPressed: !model.waiting
-                            ? () async {
-                                model.outputs.clear();
-                                model.notifyListeners();
-                              }
-                            : null,
-                        icon: const Icon(Icons.clear),
-                        color: !model.waiting ? uniRed : null,
-                        tooltip: "Clear outputs",
-                        splashRadius: 16,
                       ),
-                      IconButton(
-                        icon: Icon(
-                          model.chatMode ? Icons.chat : Icons.chat_outlined,
-                        ),
-                        tooltip:
-                            "${model.chatMode ? "Disable" : "Enable"} chat mode",
-                        splashRadius: 16,
-                        onPressed: () {
-                          setState(
-                            () {
-                              model.chatMode = !model.chatMode;
-                            },
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          model.sampling
-                              ? Icons.change_circle
-                              : Icons.change_circle_outlined,
-                        ),
-                        tooltip:
-                            "${!model.sampling ? "Disable" : "Enable"} determinism",
-                        splashRadius: 16,
-                        onPressed: () {
-                          setState(
-                            () {
-                              model.sampling = !model.sampling;
-                            },
-                          );
-                        },
-                      ),
-                      if (examples.isNotEmpty)
-                        IconButton(
-                          onPressed: !model.waiting
-                              ? () async {
-                                  final example = await showExamplesDialog(
-                                    examples,
-                                  );
-                                  if (example == null) {
-                                    return;
-                                  }
-                                  if (model.constraints
-                                      .containsKey(example[0])) {
-                                    model.constraint = example[0];
-                                  } else {
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 8),
+                inputTextField(model),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Wrap(
+                        alignment: WrapAlignment.start,
+                        runSpacing: 8,
+                        spacing: 8,
+                        children: model.constraints.entries.map((pair) {
+                              final matching = pair.key == model.constraint;
+                              return ChoiceChip(
+                                label: Text(pair.key),
+                                labelPadding:
+                                    const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                                visualDensity: VisualDensity.compact,
+                                selected: matching,
+                                onSelected: (_) {
+                                  if (matching) {
                                     model.constraint = null;
+                                  } else {
+                                    model.constraint = pair.key;
                                   }
-                                  inputController.value = TextEditingValue(
-                                    text: example[1],
-                                    composing: TextRange.collapsed(
-                                      example.length,
-                                    ),
-                                  );
-                                  inputFocus.requestFocus();
                                   model.notifyListeners();
-                                }
-                              : null,
-                          icon: const Icon(Icons.list),
-                          tooltip: "Choose an example prompt",
-                          splashRadius: 16,
-                        ),
-                    ],
-                  ),
+                                },
+                              );
+                            }).toList() +
+                            [
+                              ChoiceChip(
+                                label: const Text(customRegexConstraint),
+                                labelPadding:
+                                    const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                                visualDensity: VisualDensity.compact,
+                                selected:
+                                    model.constraint == customRegexConstraint,
+                                onSelected: (_) {
+                                  if (model.constraint ==
+                                      customRegexConstraint) {
+                                    model.constraint = null;
+                                  } else {
+                                    model.constraint = customRegexConstraint;
+                                  }
+                                  model.notifyListeners();
+                                },
+                              ),
+                              ChoiceChip(
+                                label: const Text(customCfgConstraint),
+                                labelPadding:
+                                    const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                                visualDensity: VisualDensity.compact,
+                                selected:
+                                    model.constraint == customCfgConstraint,
+                                onSelected: (_) {
+                                  if (model.constraint == customCfgConstraint) {
+                                    model.constraint = null;
+                                  } else {
+                                    model.constraint = customCfgConstraint;
+                                  }
+                                  model.notifyListeners();
+                                },
+                              ),
+                            ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          IconButton(
+                            onPressed: !model.waiting
+                                ? () async {
+                                    model.outputs.clear();
+                                    model.notifyListeners();
+                                  }
+                                : null,
+                            icon: const Icon(Icons.clear),
+                            color: !model.waiting ? uniRed : null,
+                            tooltip: "Clear outputs",
+                            splashRadius: 16,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              model.chatMode ? Icons.chat : Icons.chat_outlined,
+                            ),
+                            tooltip:
+                                "${model.chatMode ? "Disable" : "Enable"} chat mode",
+                            splashRadius: 16,
+                            onPressed: () {
+                              setState(
+                                () {
+                                  model.chatMode = !model.chatMode;
+                                },
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              model.sampling
+                                  ? Icons.change_circle
+                                  : Icons.change_circle_outlined,
+                            ),
+                            tooltip:
+                                "${!model.sampling ? "Disable" : "Enable"} determinism",
+                            splashRadius: 16,
+                            onPressed: () {
+                              setState(
+                                () {
+                                  model.sampling = !model.sampling;
+                                },
+                              );
+                            },
+                          ),
+                          if (examples.isNotEmpty)
+                            IconButton(
+                              onPressed: !model.waiting
+                                  ? () async {
+                                      final example = await showExamplesDialog(
+                                        examples,
+                                      );
+                                      if (example == null) {
+                                        return;
+                                      }
+                                      if (model.constraints
+                                          .containsKey(example[0])) {
+                                        model.constraint = example[0];
+                                      } else {
+                                        model.constraint = null;
+                                      }
+                                      inputController.value = TextEditingValue(
+                                        text: example[1],
+                                        composing: TextRange.collapsed(
+                                          example.length,
+                                        ),
+                                      );
+                                      inputFocus.requestFocus();
+                                      model.notifyListeners();
+                                    }
+                                  : null,
+                              icon: const Icon(Icons.list),
+                              tooltip: "Choose an example prompt",
+                              splashRadius: 16,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
