@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
 
 import 'package:flutter/material.dart';
@@ -41,127 +39,13 @@ class _HomeViewState extends State<HomeView> {
   final ScrollController scrollController = ScrollController();
   final FocusNode inputFocus = FocusNode();
 
-  bool showMore = true;
-
   @override
   void initState() {
     super.initState();
-
     inputController.addListener(() {
       setState(() {});
     });
     inputFocus.requestFocus();
-    regexController.text = r"""
-PERCENT [1-9]?[0-9] '%'
-BOOL (true|false)
-DIGITS \d+
-%%
-\{
-    "patient_id": "{DIGITS}",
-    "vessels": \{
-        "lm": \{
-            "stenosis": "{PERCENT}"
-        \},
-        "lca": \{
-            "stenosis": "{PERCENT}"
-        \},
-        "lcx": \{
-            "stenosis": "{PERCENT}"
-        \},
-        "rca": \{
-            "stenosis": "{PERCENT}"
-        \},
-    \},
-    "modifiers": \{
-        "global_N": {BOOL},
-        "N": {BOOL},
-        "S": {BOOL},
-        "G": {BOOL},
-        "E": {BOOL},
-        "HRP": {BOOL},
-        "specific_risk_count": [1-5],
-        "calcification_score": [1-9]?[0-9]?[0-9],
-        "FFR": [1-5],
-        "CTP": [0-5]
-    \}
-\} 
-""";
-
-    inputController.text = r"""
-{
-    "patient_id": <number>,
-    "vessels": {
-        "lm": {
-            "stenosis": <percentage score>
-        },
-        "lca": {
-            "stenosis": <percentage score>
-        },
-        "lcx": {
-            "stenosis": <percentage score>
-        },
-        "rca": {
-            "stenosis": <percentage score>
-        },
-    },
-    "modifiers": {
-        "global_N": <bool>,
-        "N": <bool>,
-        "S": <bool>,
-        "G": <bool>,
-        "E": <bool>,
-        "HRP": <bool>,
-        "specific_risk_count": <score between 1 and 5>,
-        "calcification_score": <score reaching from 0 to over 400>,
-        "FFR": <score between 1 and 5>,
-        "CTP": <score between 0 and 5>
-    }
-}
-
-Fill out the JSON template above given the following patient record in German language:
-
-Keine Voraufnahmen.
-
-Koronarkalk–CT:
-
-Der gesamte Agatston Score beträgt 210.
-
-Koronar-Angiographie–CT:
-
-Versorgertyp:
-
-Rechtsversorgertyp
-
-Bildqualität/Beurteilbarkeit:
-
-Keine relevanten Artefakte, somit diagnostische Bildqualität gegeben.
-
-LM:
-
-Regelrechter Abgang aus der linkskoronaren Tasche. Kein Nachweis einer Stenose.
-
-LAD:
-
-Gemischt-verkalkte Plaques mit hieraus resultierender Stenose von 75% im
-proximalen Abschnitt. Sonst keine Stenose.
-
-LCX:
-
-Kein Nachweis einer relevanten Plaque und keine Stenose.
-
-RCA:
-
-Ursprung aus der rechtskoronaren Tasche. Im mittleren Abschnitt zeigt sich eine
-geringe Stenose von ca. 40% bei verkalkte Plaques.
-In der zusätzlich durchgeführten CT-FFR zeigte sich für die LAD ein Wert von 0.71
-
-Weitere Befunde:
-
-Aorta mit geringen atherosklerotischen Veränderungen. Kein Pleura- und
-Perikarderguss. Lymphknoten in normaler Größe. Oberbauch soweit erfasst
-unauffällig. Wirbelkörperhämangiom in BWK 11.
-
-""";
   }
 
   @override
@@ -191,9 +75,6 @@ unauffällig. Wirbelkörperhämangiom in BWK 11.
           grammarController,
           lexerController,
         );
-        // setState(() {
-        // showMore = !model.validModel;
-        // });
       },
       builder: (context, model, child) {
         Future.delayed(
@@ -349,45 +230,230 @@ unauffällig. Wirbelkörperhämangiom in BWK 11.
   Widget inputTextField(HomeModel model) {
     final canRun =
         model.validModel && !model.waiting && inputController.text.isNotEmpty;
-    return TextField(
-      controller: model.inputController,
-      readOnly: model.waiting,
-      maxLines: 10,
-      onSubmitted: canRun
-          ? (text) async {
-              await model.run(text);
-            }
-          : null,
-      keyboardType: TextInputType.multiline,
-      focusNode: inputFocus,
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(),
-        hintText: "Enter your prompt",
-        helperText:
-            model.hasResults ? formatRuntime(model.outputs.last.runtime) : null,
-        helperMaxLines: 2,
-        suffixIcon: Row(
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(
+          LogicalKeyboardKey.enter,
+          control: true,
+        ): () async {
+          if (!canRun) return;
+          final numOutputs = model.outputs.length;
+          await model.run(model.inputController.text);
+          if ((!model.chatMode && model.outputs.isNotEmpty) ||
+              (model.chatMode && model.outputs.length > numOutputs)) {
+            model.inputController.text = "";
+            model.notifyListeners();
+          }
+        }
+      },
+      child: TextField(
+        controller: model.inputController,
+        readOnly: model.waiting,
+        minLines: 1,
+        maxLines: 8,
+        keyboardType: TextInputType.multiline,
+        focusNode: inputFocus,
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          hintText: "Enter your prompt",
+          helperText: model.hasResults
+              ? formatRuntime(model.outputs.last.runtime)
+              : null,
+          helperMaxLines: 2,
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: canRun
+                    ? () async {
+                        final numOutputs = model.outputs.length;
+                        await model.run(model.inputController.text);
+                        if ((!model.chatMode && model.outputs.isNotEmpty) ||
+                            (model.chatMode &&
+                                model.outputs.length > numOutputs)) {
+                          model.inputController.text = "";
+                          model.notifyListeners();
+                        }
+                      }
+                    : null,
+                icon: const Icon(Icons.start),
+                color: uniBlue,
+                tooltip: "Run model on prompt",
+                splashRadius: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildInput(HomeModel model) {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              onPressed: canRun
-                  ? () async {
-                      final numOutputs = model.outputs.length;
-                      await model.run(
-                        model.inputController.text,
-                      );
-                      if ((!model.chatMode && model.outputs.isNotEmpty) ||
-                          (model.chatMode &&
-                              model.outputs.length > numOutputs)) {
-                        model.inputController.text = "";
-                        model.notifyListeners();
-                      }
-                    }
-                  : null,
-              icon: const Icon(Icons.start),
-              color: uniBlue,
-              tooltip: "Run model on prompt",
-              splashRadius: 16,
+            inputTextField(model),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Wrap(
+                    alignment: WrapAlignment.start,
+                    runSpacing: 8,
+                    spacing: 8,
+                    children: model.constraints.entries.map((pair) {
+                          final matching = pair.key == model.constraint;
+                          return ChoiceChip(
+                            label: Text(pair.key),
+                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                            visualDensity: VisualDensity.compact,
+                            selected: matching,
+                            onSelected: (_) {
+                              if (matching) {
+                                model.constraint = null;
+                              } else {
+                                model.constraint = pair.key;
+                              }
+                              model.notifyListeners();
+                            },
+                          );
+                        }).toList() +
+                        [
+                          ChoiceChip(
+                            label: const Text(customRegexConstraint),
+                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                            visualDensity: VisualDensity.compact,
+                            selected: model.constraint == customRegexConstraint,
+                            onSelected: (_) {
+                              if (model.constraint == customRegexConstraint) {
+                                model.constraint = null;
+                              } else {
+                                model.constraint = customRegexConstraint;
+                                if (regexController.text.isEmpty) {
+                                  showConfigurationSheet(model);
+                                }
+                              }
+                              model.notifyListeners();
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text(customCfgConstraint),
+                            labelPadding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
+                            visualDensity: VisualDensity.compact,
+                            selected: model.constraint == customCfgConstraint,
+                            onSelected: (_) {
+                              if (model.constraint == customCfgConstraint) {
+                                model.constraint = null;
+                              } else {
+                                model.constraint = customCfgConstraint;
+                                if (grammarController.text.isEmpty) {
+                                  showConfigurationSheet(model);
+                                }
+                              }
+                              model.notifyListeners();
+                            },
+                          ),
+                        ],
+                  ),
+                ),
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      IconButton(
+                        splashRadius: 16,
+                        onPressed: () {
+                          showConfigurationSheet(model);
+                        },
+                        tooltip: "Show configuration",
+                        icon: const Icon(Icons.settings),
+                      ),
+                      IconButton(
+                        onPressed: !model.waiting
+                            ? () async {
+                                model.outputs.clear();
+                                model.notifyListeners();
+                              }
+                            : null,
+                        icon: const Icon(Icons.clear),
+                        color: !model.waiting ? uniRed : null,
+                        tooltip: "Clear ${model.chatMode ? "chat" : "output"}",
+                        splashRadius: 16,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          model.chatMode ? Icons.chat : Icons.chat_outlined,
+                        ),
+                        tooltip:
+                            "${model.chatMode ? "Disable" : "Enable"} chat mode",
+                        splashRadius: 16,
+                        onPressed: () async {
+                          model.chatMode = !model.chatMode;
+                          await model.saveSettings();
+                          model.notifyListeners();
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          model.sampling
+                              ? Icons.change_circle
+                              : Icons.change_circle_outlined,
+                        ),
+                        tooltip:
+                            "${!model.sampling ? "Disable" : "Enable"} determinism",
+                        splashRadius: 16,
+                        onPressed: () async {
+                          model.sampling = !model.sampling;
+                          await model.saveSettings();
+                          model.notifyListeners();
+                        },
+                      ),
+                      if (examples.isNotEmpty)
+                        IconButton(
+                          onPressed: !model.waiting
+                              ? () async {
+                                  final example = await showExamplesDialog(
+                                    examples,
+                                  );
+                                  if (example == null) {
+                                    return;
+                                  }
+                                  if (model.constraints
+                                      .containsKey(example[0])) {
+                                    model.constraint = example[0];
+                                  } else {
+                                    model.constraint = null;
+                                  }
+                                  inputController.value = TextEditingValue(
+                                    text: example[1],
+                                    composing: TextRange.collapsed(
+                                      example.length,
+                                    ),
+                                  );
+                                  inputFocus.requestFocus();
+                                  model.notifyListeners();
+                                }
+                              : null,
+                          icon: const Icon(Icons.list),
+                          tooltip: "Choose an example prompt",
+                          splashRadius: 16,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -395,87 +461,74 @@ unauffällig. Wirbelkörperhämangiom in BWK 11.
     );
   }
 
-  Widget buildInput(HomeModel model) {
-    String? infoText;
-    if (model.validModel) {
-      final info = model.modelInfos.firstWhere(
-        (info) => info.name == model.model,
-      );
-      infoText = info.description;
-      if (info.tags.isNotEmpty) {
-        infoText += " (${info.tags.join(', ')})";
-      }
-    }
-    final validPresets =
-        presets.where((preset) => model.isValidPreset(preset)).toList();
-    return Card(
-      elevation: 2,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-            child: IconButton(
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              iconSize: 24,
-              constraints: const BoxConstraints(maxHeight: 24),
-              onPressed: () {
-                setState(() {
-                  showMore = !showMore;
-                });
-              },
-              icon: Transform.rotate(
-                angle: -pi / 2,
-                child: Icon(
-                  showMore ? Icons.chevron_left : Icons.chevron_right,
-                ),
-              ),
-            ),
-          ),
-          SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: Column(
-              children: [
-                if (showMore) ...[
+  showConfigurationSheet(HomeModel model) {
+    showModalBottomSheet(
+      context: context,
+      constraints: BoxConstraints.loose(
+        const Size(double.infinity, double.infinity),
+      ),
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      isScrollControlled: true,
+      isDismissible: true,
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (_, setModalState) {
+            String? infoText;
+            if (model.validModel) {
+              final info = model.modelInfos.firstWhere(
+                (info) => info.name == model.model,
+              );
+              infoText = info.description;
+              if (info.tags.isNotEmpty) {
+                infoText += " (${info.tags.join(', ')})";
+              }
+            }
+            final validPresets = presets
+                .where(
+                  (preset) => model.isValidPreset(preset),
+                )
+                .toList();
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   const SizedBox(height: 8),
                   if (validPresets.isNotEmpty) ...[
                     Presets(
                       presets: validPresets,
                       model: model.model,
                       onSelected: (preset) {
-                        setState(
-                          () {
-                            if (preset == null) {
-                              model.model = null;
-                            } else {
-                              model.model = preset.model;
-                            }
-                          },
-                        );
+                        if (preset == null) {
+                          model.model = null;
+                        } else {
+                          model.model = preset.model;
+                        }
+                        setModalState(() {});
+                        model.notifyListeners();
                       },
                     ),
-                    const SizedBox(height: 8)
+                    const SizedBox(height: 8),
                   ],
                   DropdownButtonFormField<String>(
                     value: model.model,
-                    isExpanded: true,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.question_answer_outlined),
+                      prefixIcon: const Icon(Icons.text_snippet_outlined),
                       suffixIcon: IconButton(
                         splashRadius: 16,
                         tooltip: "Clear model",
                         color: uniRed,
                         icon: const Icon(Icons.clear),
                         onPressed: model.validModel
-                            ? () {
-                                setState(() {
-                                  model.model = null;
-                                });
+                            ? () async {
+                                model.model = null;
+                                await model.saveSettings();
+                                setModalState(() {});
+                                model.notifyListeners();
                               }
                             : null,
                       ),
@@ -494,11 +547,10 @@ unauffällig. Wirbelkörperhämangiom in BWK 11.
                       },
                     ).toList(),
                     onChanged: (String? modelName) async {
-                      if (modelName == null) return;
-                      await model.saveModel();
-                      setState(() {
-                        model.model = modelName;
-                      });
+                      model.model = modelName;
+                      await model.saveSettings();
+                      setModalState(() {});
+                      model.notifyListeners();
                     },
                   ),
                   if (model.constraint == customRegexConstraint) ...[
@@ -506,200 +558,55 @@ unauffällig. Wirbelkörperhämangiom in BWK 11.
                     TextField(
                       controller: regexController,
                       keyboardType: TextInputType.multiline,
-                      maxLines: 10,
+                      minLines: 1,
+                      maxLines: 20,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: "Define your regular expression",
+                        helperText: "Regular expression",
                       ),
                     ),
-                  ],
-                  if (model.constraint == customCfgConstraint) ...[
+                  ] else if (model.constraint == customCfgConstraint) ...[
                     const SizedBox(height: 8),
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          TextField(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
                             controller: lexerController,
                             keyboardType: TextInputType.multiline,
-                            maxLines: 10,
+                            minLines: 1,
+                            maxLines: 16,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               hintText: "Define your lexer",
+                              helperText: "Lexer",
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          TextField(
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
                             controller: grammarController,
                             keyboardType: TextInputType.multiline,
-                            maxLines: 10,
+                            minLines: 1,
+                            maxLines: 16,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               hintText: "Define your grammar",
+                              helperText: "Grammar",
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
-                const SizedBox(height: 8),
-                inputTextField(model),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Wrap(
-                        alignment: WrapAlignment.start,
-                        runSpacing: 8,
-                        spacing: 8,
-                        children: model.constraints.entries.map((pair) {
-                              final matching = pair.key == model.constraint;
-                              return ChoiceChip(
-                                label: Text(pair.key),
-                                labelPadding:
-                                    const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                                visualDensity: VisualDensity.compact,
-                                selected: matching,
-                                onSelected: (_) {
-                                  if (matching) {
-                                    model.constraint = null;
-                                  } else {
-                                    model.constraint = pair.key;
-                                  }
-                                  model.notifyListeners();
-                                },
-                              );
-                            }).toList() +
-                            [
-                              ChoiceChip(
-                                label: const Text(customRegexConstraint),
-                                labelPadding:
-                                    const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                                visualDensity: VisualDensity.compact,
-                                selected:
-                                    model.constraint == customRegexConstraint,
-                                onSelected: (_) {
-                                  if (model.constraint ==
-                                      customRegexConstraint) {
-                                    model.constraint = null;
-                                  } else {
-                                    model.constraint = customRegexConstraint;
-                                  }
-                                  model.notifyListeners();
-                                },
-                              ),
-                              ChoiceChip(
-                                label: const Text(customCfgConstraint),
-                                labelPadding:
-                                    const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                                visualDensity: VisualDensity.compact,
-                                selected:
-                                    model.constraint == customCfgConstraint,
-                                onSelected: (_) {
-                                  if (model.constraint == customCfgConstraint) {
-                                    model.constraint = null;
-                                  } else {
-                                    model.constraint = customCfgConstraint;
-                                  }
-                                  model.notifyListeners();
-                                },
-                              ),
-                            ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          IconButton(
-                            onPressed: !model.waiting
-                                ? () async {
-                                    model.outputs.clear();
-                                    model.notifyListeners();
-                                  }
-                                : null,
-                            icon: const Icon(Icons.clear),
-                            color: !model.waiting ? uniRed : null,
-                            tooltip: "Clear outputs",
-                            splashRadius: 16,
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              model.chatMode ? Icons.chat : Icons.chat_outlined,
-                            ),
-                            tooltip:
-                                "${model.chatMode ? "Disable" : "Enable"} chat mode",
-                            splashRadius: 16,
-                            onPressed: () {
-                              setState(
-                                () {
-                                  model.chatMode = !model.chatMode;
-                                },
-                              );
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              model.sampling
-                                  ? Icons.change_circle
-                                  : Icons.change_circle_outlined,
-                            ),
-                            tooltip:
-                                "${!model.sampling ? "Disable" : "Enable"} determinism",
-                            splashRadius: 16,
-                            onPressed: () {
-                              setState(
-                                () {
-                                  model.sampling = !model.sampling;
-                                },
-                              );
-                            },
-                          ),
-                          if (examples.isNotEmpty)
-                            IconButton(
-                              onPressed: !model.waiting
-                                  ? () async {
-                                      final example = await showExamplesDialog(
-                                        examples,
-                                      );
-                                      if (example == null) {
-                                        return;
-                                      }
-                                      if (model.constraints
-                                          .containsKey(example[0])) {
-                                        model.constraint = example[0];
-                                      } else {
-                                        model.constraint = null;
-                                      }
-                                      inputController.value = TextEditingValue(
-                                        text: example[1],
-                                        composing: TextRange.collapsed(
-                                          example.length,
-                                        ),
-                                      );
-                                      inputFocus.requestFocus();
-                                      model.notifyListeners();
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.list),
-                              tooltip: "Choose an example prompt",
-                              splashRadius: 16,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -810,32 +717,30 @@ unauffällig. Wirbelkörperhämangiom in BWK 11.
   }
 
   Widget buildOutputs(HomeModel model) {
-    List<Widget> children = [];
-    if (model.waiting) {
-      children.add(const SizedBox(height: 8));
-      children.add(
-        const Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-          ),
-        ),
-      );
-    }
-    children.addAll(
-      model.outputs.reversed
-          .map(
-            (output) => [
-              const SizedBox(height: 8),
-              outputCard(output.output, false),
-              const SizedBox(height: 8),
-              outputCard(output.input, true),
-            ],
-          )
-          .flattened,
-    );
-    return ListView(
+    return ListView.separated(
       reverse: true,
-      children: children.sublist(min(1, children.length)),
+      separatorBuilder: (_, __) {
+        return const SizedBox(height: 8);
+      },
+      itemBuilder: (_, index) {
+        if (model.waiting && index == 0) {
+          return const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+            ),
+          );
+        } else if (model.waiting) {
+          index--;
+        }
+        final outputIndex = index ~/ 2;
+        final output = model.outputs[model.outputs.length - 1 - outputIndex];
+        final isOutput = index % 2 == 0;
+        return outputCard(
+          isOutput ? output.output : output.input,
+          !isOutput,
+        );
+      },
+      itemCount: model.outputs.length * 2 + (model.waiting ? 1 : 0),
     );
   }
 

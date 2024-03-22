@@ -21,7 +21,7 @@ class HomeModel extends BaseModel {
 
   Map<String, Constraint> constraints = {};
 
-  String? constraint = customRegexConstraint;
+  String? constraint;
 
   int _inputBytes = 0;
 
@@ -65,7 +65,6 @@ class HomeModel extends BaseModel {
     this.inputController = inputController;
     this.regexController = regexController;
 
-
     this.grammarController = grammarController;
     this.lexerController = lexerController;
 
@@ -83,6 +82,8 @@ class HomeModel extends BaseModel {
 
     final prefs = await SharedPreferences.getInstance();
     model = prefs.getString("model");
+    chatMode = prefs.getBool("chatMode") ?? false;
+    sampling = prefs.getBool("sampling") ?? true;
     if (!validModel) {
       model = modelInfos.firstOrNull?.name;
     }
@@ -91,12 +92,15 @@ class HomeModel extends BaseModel {
     notifyListeners();
   }
 
-  saveModel() async {
-    if (model == null) {
-      return;
-    }
+  saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString("model", model!);
+    if (model != null) {
+      await prefs.setString("model", model!);
+    } else {
+      await prefs.remove("model");
+    }
+    await prefs.setBool("chatMode", chatMode);
+    await prefs.setBool("sampling", sampling);
   }
 
   bool isValidPreset(Preset preset) {
