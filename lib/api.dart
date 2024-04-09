@@ -180,18 +180,26 @@ class Api {
         "top_p": 0.99
       };
       if (chat == null) {
-        data["texts"] = [text];
+        data["inputs"] = [
+          {"text": text}
+        ];
       } else {
-        data["chats"] = [chat];
+        data["inputs"] = [
+          {"chat": chat}
+        ];
       }
       if (constraint != null) {
         if (constraint.isRegex) {
-          data["regex"] = constraint.regex!;
+          data["constraint"] = {
+            "type": "regex",
+            "regex": constraint.regex!,
+          };
         } else {
-          data["cfg"] = {
-            "grammar": constraint.cfgGrammar!,
-            "lexer": constraint.cfgLexer!,
-            "exact": constraint.cfgExact
+          data["constraint"] = {
+            "type": "lr1",
+            "grammar": constraint.lr1Grammar!,
+            "lexer": constraint.lr1Lexer!,
+            "exact": constraint.lr1Exact
           };
         }
       }
@@ -205,7 +213,7 @@ class Api {
           message: "text generation failed: ${res.message}",
         );
       }
-      final List<String> texts = res.value["texts"].cast<String>();
+      final List<String> texts = res.value["outputs"].cast<String>();
       final output = ModelOutput(
         text,
         texts.first,

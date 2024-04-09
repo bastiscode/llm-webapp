@@ -24,15 +24,15 @@ const List<Link> links = [
 
 class Constraint {
   String? regex;
-  String? cfgGrammar;
-  String? cfgLexer;
-  bool cfgExact = false;
+  String? lr1Grammar;
+  String? lr1Lexer;
+  bool lr1Exact = false;
 
   Constraint({
     this.regex,
-    this.cfgGrammar,
-    this.cfgLexer,
-    this.cfgExact = false,
+    this.lr1Grammar,
+    this.lr1Lexer,
+    this.lr1Exact = false,
   });
 
   static Constraint withRegex(String regex) {
@@ -49,9 +49,9 @@ class Constraint {
     bool exact = false,
   }) {
     return Constraint(
-      cfgGrammar: grammar,
-      cfgLexer: lexer,
-      cfgExact: exact,
+      lr1Grammar: grammar,
+      lr1Lexer: lexer,
+      lr1Exact: exact,
     );
   }
 }
