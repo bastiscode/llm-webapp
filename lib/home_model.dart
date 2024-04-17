@@ -148,9 +148,14 @@ class HomeModel extends BaseModel {
     } else {
       bool added = false;
       stream.listen(
-        (data) {
+        (data) async {
           try {
             final json = jsonDecode(data);
+            if (json.containsKey("error")) {
+              messages.add(Message(json["error"], Status.error));
+              notifyListeners();
+              return;
+            }
             final output = A.ModelOutput(
               inputString,
               json["output"],
@@ -174,9 +179,7 @@ class HomeModel extends BaseModel {
         cancelOnError: true,
       );
     }
-
     _waiting = false;
-
     notifyListeners();
   }
 }
