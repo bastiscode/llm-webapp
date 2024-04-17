@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -89,7 +88,7 @@ class Api {
         // for release mode use href
         _baseURL = "$href/$rel";
         final uri = Uri.parse(_baseURL);
-        _wsBaseURL = "wss://${uri.host}:${uri.port}";
+        _wsBaseURL = "wss://${uri.host}:${uri.port}/$rel";
       } else {
         // for local development use localhost
         _baseURL = "http://localhost:40000/$rel";
