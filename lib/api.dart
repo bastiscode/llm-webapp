@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:html';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 
 import 'package:webapp/components/message.dart';
@@ -66,6 +70,7 @@ class ModelOutput {
 
 class Api {
   late final String _baseURL;
+  late final String _wsBaseURL;
   late final String _webBaseURL;
 
   String get webBaseURL => _webBaseURL;
@@ -83,9 +88,12 @@ class Api {
       if (kReleaseMode) {
         // for release mode use href
         _baseURL = "$href/$rel";
+        final uri = Uri.parse(_baseURL);
+        _wsBaseURL = "wss://${uri.host}:${uri.port}";
       } else {
         // for local development use localhost
         _baseURL = "http://localhost:40000/$rel";
+        _wsBaseURL = "ws://localhost:40000";
       }
       _webBaseURL = href;
     } else {
@@ -148,83 +156,46 @@ class Api {
     }
   }
 
-  Future<ApiResult<dynamic>> _post(
-    String url,
-    dynamic data,
-  ) async {
-    final res = await http.post(
-      Uri.parse(url),
-      body: jsonEncode(data),
-      headers: {"Content-Type": "application/json"},
-    );
-    return ApiResult(
-      res.statusCode,
-      message: res.body,
-      value: res.statusCode == 200 ? jsonDecode(res.body) : null,
-    );
-  }
-
-  Future<ApiResult<ModelOutput>> generate(
+  Future<Stream<dynamic>?> generate(
     String text,
     List<Map<String, String>>? chat,
     String model,
     bool sampling,
     Constraint? constraint,
   ) async {
-    try {
-      final stop = Stopwatch()..start();
-      var data = {
-        "model": model,
-        "sampling_strategy": sampling ? "top_p" : "greedy",
-        "top_k": 100,
-        "top_p": 0.99
-      };
-      if (chat == null) {
-        data["inputs"] = [
-          {"text": text}
-        ];
+    var data = {
+      "model": model,
+      "sampling_strategy": sampling ? "top_p" : "greedy",
+      "top_k": 100,
+      "top_p": 0.90
+    };
+    if (chat == null) {
+      data["text"] = text;
+    } else {
+      data["chat"] = chat;
+    }
+    if (constraint != null) {
+      if (constraint.isRegex) {
+        data["constraint"] = {
+          "type": "regex",
+          "regex": constraint.regex!,
+        };
       } else {
-        data["inputs"] = [
-          {"chat": chat}
-        ];
+        data["constraint"] = {
+          "type": "lr1",
+          "grammar": constraint.lr1Grammar!,
+          "lexer": constraint.lr1Lexer!,
+          "exact": constraint.lr1Exact
+        };
       }
-      if (constraint != null) {
-        if (constraint.isRegex) {
-          data["constraint"] = {
-            "type": "regex",
-            "regex": constraint.regex!,
-          };
-        } else {
-          data["constraint"] = {
-            "type": "lr1",
-            "grammar": constraint.lr1Grammar!,
-            "lexer": constraint.lr1Lexer!,
-            "exact": constraint.lr1Exact
-          };
-        }
-      }
-      final res = await _post(
-        "$_baseURL/generate",
-        data,
-      );
-      if (res.statusCode != 200) {
-        return ApiResult(
-          res.statusCode,
-          message: "text generation failed: ${res.message}",
-        );
-      }
-      final List<String> texts = res.value["outputs"].cast<String>();
-      final output = ModelOutput(
-        text,
-        texts.first,
-        Runtime.fromJson(
-          res.value["runtime"],
-          stop.elapsedMicroseconds / 1e6,
-        ),
-      );
-      return ApiResult(200, value: output);
+    }
+    try {
+      final channel = WebSocketChannel.connect(Uri.parse("$_wsBaseURL/live"));
+      await channel.ready;
+      channel.sink.add(jsonEncode(data));
+      return channel.stream;
     } catch (e) {
-      return ApiResult(500, message: "internal error: $e");
+      return null;
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,6 @@ import 'package:webapp/base_model.dart';
 import 'package:webapp/components/message.dart';
 import 'package:webapp/components/presets.dart';
 import 'package:webapp/config.dart';
-import 'package:webapp/utils.dart';
 
 class HomeModel extends BaseModel {
   A.BackendInfo? backendInfo;
@@ -22,10 +22,6 @@ class HomeModel extends BaseModel {
   Map<String, Constraint> constraints = {};
 
   String? constraint;
-
-  int _inputBytes = 0;
-
-  int get inputBytes => _inputBytes;
 
   Queue<Message> messages = Queue();
 
@@ -123,6 +119,7 @@ class HomeModel extends BaseModel {
   }
 
   Future<void> run(String inputString) async {
+    final stop = Stopwatch()..start();
     _waiting = true;
     if (!chatMode) {
       outputs.clear();
@@ -139,20 +136,47 @@ class HomeModel extends BaseModel {
       );
     }
 
-    final result = await A.api.generate(
+    final stream = await A.api.generate(
       inputString,
       chatMode ? getChat(inputString) : null,
       model!,
       sampling,
       ct,
     );
-    if (result.statusCode == 200) {
-      outputs.add(result.value!);
-      _inputBytes = numBytes(inputString);
+    if (stream == null) {
+      messages.add(Message("failed to get response", Status.error));
     } else {
-      messages.add(A.errorMessageFromApiResult(result));
+      bool added = false;
+      stream.listen(
+        (data) {
+          try {
+            final json = jsonDecode(data);
+            final output = A.ModelOutput(
+              inputString,
+              json["output"],
+              A.Runtime.fromJson(
+                json["runtime"],
+                stop.elapsed.inMilliseconds / 1000,
+              ),
+            );
+            if (outputs.isEmpty || !added) {
+              outputs.add(output);
+              added = true;
+            } else {
+              outputs.last = output;
+            }
+            notifyListeners();
+          } catch (e) {
+            return;
+          }
+        },
+        onError: (_) {},
+        cancelOnError: true,
+      );
     }
+
     _waiting = false;
+
     notifyListeners();
   }
 }
