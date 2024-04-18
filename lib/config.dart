@@ -21,10 +21,7 @@ const List<Link> links = [
   ),
 ];
 
-const formatLanguages = [
-  "JSON",
-  "SPARQL"
-];
+final languagePattern = RegExp(r"^(json|sparql)\s");
 
 class Constraint {
   String? regex;

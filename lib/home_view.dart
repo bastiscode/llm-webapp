@@ -634,7 +634,7 @@ class _HomeViewState extends State<HomeView> {
     List<Widget> children = [];
     int lastEnd = 0;
     for (final match in RegExp(
-      r"```([A-Za-z_]+\s)?(.*)```",
+      r"```(.*?)```",
       multiLine: true,
       dotAll: true,
       unicode: true,
@@ -643,11 +643,12 @@ class _HomeViewState extends State<HomeView> {
       if (sub.isNotEmpty) {
         children.add(SelectableText(sub));
       }
-      var language = match.group(1)!.toUpperCase();
-      var code = match.group(2)!;
-      if (language.isEmpty || !formatLanguages.contains(language)) {
-        code = language + code;
-        language = "UNKNOWN";
+      var code = match.group(1)!;
+      final codeLang = languagePattern.firstMatch(code);
+      String language = "UNKNOWN";
+      if (codeLang != null) {
+        language = codeLang.group(1)!;
+        code = code.substring(codeLang.end);
       }
       code = code.trim();
       children.addAll([
