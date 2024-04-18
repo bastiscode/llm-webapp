@@ -228,8 +228,40 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget inputTextField(HomeModel model) {
-    final canRun =
-        model.validModel && !model.waiting && inputController.text.isNotEmpty;
+    final canRun = model.validModel &&
+        !model.generating &&
+        inputController.text.isNotEmpty;
+
+    final buttons = [
+      IconButton(
+        onPressed: canRun
+            ? () async {
+                final numOutputs = model.outputs.length;
+                await model.run(model.inputController.text);
+                if ((!model.chatMode && model.outputs.isNotEmpty) ||
+                    (model.chatMode && model.outputs.length > numOutputs)) {
+                  model.inputController.text = "";
+                  model.notifyListeners();
+                }
+              }
+            : null,
+        icon: const Icon(Icons.start),
+        color: uniBlue,
+        tooltip: "Run model on prompt",
+        splashRadius: 16,
+      ),
+      IconButton(
+        onPressed: model.generating
+            ? () async {
+                await model.stop();
+              }
+            : null,
+        icon: const Icon(Icons.stop_circle),
+        color: uniBlue,
+        tooltip: "Stop generation",
+        splashRadius: 16,
+      ),
+    ];
 
     return CallbackShortcuts(
       bindings: {
@@ -249,7 +281,7 @@ class _HomeViewState extends State<HomeView> {
       },
       child: TextField(
         controller: model.inputController,
-        readOnly: model.waiting,
+        readOnly: model.generating,
         minLines: 1,
         maxLines: 8,
         keyboardType: TextInputType.multiline,
@@ -257,33 +289,21 @@ class _HomeViewState extends State<HomeView> {
         decoration: InputDecoration(
           border: const OutlineInputBorder(),
           hintText: "Enter your prompt",
-          helperText: model.hasResults
-              ? formatRuntime(model.outputs.last.runtime)
-              : null,
+          helperText: model.validModel
+              ? model.hasResults
+                  ? "${formatRuntime(model.outputs.last.runtime)} with ${model.model!}"
+                  : "Running ${model.model!}"
+              : "No model selected",
           helperMaxLines: 2,
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: canRun
-                    ? () async {
-                        final numOutputs = model.outputs.length;
-                        await model.run(model.inputController.text);
-                        if ((!model.chatMode && model.outputs.isNotEmpty) ||
-                            (model.chatMode &&
-                                model.outputs.length > numOutputs)) {
-                          model.inputController.text = "";
-                          model.notifyListeners();
-                        }
-                      }
-                    : null,
-                icon: const Icon(Icons.start),
-                color: uniBlue,
-                tooltip: "Run model on prompt",
-                splashRadius: 16,
-              ),
-            ],
-          ),
+          suffixIcon: model.inputController.text.contains("\n")
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: buttons,
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: buttons,
+                ),
         ),
       ),
     );
@@ -381,14 +401,14 @@ class _HomeViewState extends State<HomeView> {
                         icon: const Icon(Icons.settings),
                       ),
                       IconButton(
-                        onPressed: !model.waiting
+                        onPressed: !model.generating
                             ? () async {
                                 model.outputs.clear();
                                 model.notifyListeners();
                               }
                             : null,
                         icon: const Icon(Icons.clear),
-                        color: !model.waiting ? uniRed : null,
+                        color: !model.generating ? uniRed : null,
                         tooltip: "Clear ${model.chatMode ? "chat" : "output"}",
                         splashRadius: 16,
                       ),
@@ -422,7 +442,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       if (examples.isNotEmpty)
                         IconButton(
-                          onPressed: !model.waiting
+                          onPressed: !model.generating
                               ? () async {
                                   final example = await showExamplesDialog(
                                     examples,

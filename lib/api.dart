@@ -92,7 +92,7 @@ class Api {
       } else {
         // for local development use localhost
         _baseURL = "http://localhost:40000/$rel";
-        _wsBaseURL = "ws://localhost:40000";
+        _wsBaseURL = "ws://localhost:40000/$rel";
       }
       _webBaseURL = href;
     } else {
@@ -155,7 +155,7 @@ class Api {
     }
   }
 
-  Future<Stream<dynamic>?> generate(
+  Future<WebSocketChannel?> generate(
     String text,
     List<Map<String, String>>? chat,
     String model,
@@ -192,7 +192,7 @@ class Api {
       final channel = WebSocketChannel.connect(Uri.parse("$_wsBaseURL/live"));
       await channel.ready;
       channel.sink.add(jsonEncode(data));
-      return channel.stream;
+      return channel;
     } catch (e) {
       return null;
     }

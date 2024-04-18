@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:webapp/api.dart' as A;
 import 'package:webapp/base_model.dart';
 import 'package:webapp/components/message.dart';
@@ -45,6 +46,11 @@ class HomeModel extends BaseModel {
   bool _waiting = false;
 
   bool get waiting => _waiting;
+
+  WebSocketChannel? _channel;
+  StreamSubscription? _generation;
+
+  bool get generating => _waiting || _generation != null;
 
   bool get hasResults => outputs.isNotEmpty;
 
@@ -119,7 +125,7 @@ class HomeModel extends BaseModel {
   }
 
   Future<void> run(String inputString) async {
-    final stop = Stopwatch()..start();
+    final time = Stopwatch()..start();
     _waiting = true;
     if (!chatMode) {
       outputs.clear();
@@ -136,18 +142,18 @@ class HomeModel extends BaseModel {
       );
     }
 
-    final stream = await A.api.generate(
+    _channel = await A.api.generate(
       inputString,
       chatMode ? getChat(inputString) : null,
       model!,
       sampling,
       ct,
     );
-    if (stream == null) {
+    if (_channel == null) {
       messages.add(Message("failed to get response", Status.error));
     } else {
       bool added = false;
-      stream.listen(
+      _generation = _channel!.stream.listen(
         (data) async {
           try {
             final json = jsonDecode(data);
@@ -161,7 +167,7 @@ class HomeModel extends BaseModel {
               json["output"],
               A.Runtime.fromJson(
                 json["runtime"],
-                stop.elapsed.inMilliseconds / 1000,
+                time.elapsed.inMilliseconds / 1000,
               ),
             );
             if (outputs.isEmpty || !added) {
@@ -175,11 +181,24 @@ class HomeModel extends BaseModel {
             return;
           }
         },
-        onError: (_) {},
+        onError: (_) async {
+          await stop();
+        },
+        onDone: () async {
+          await stop();
+        },
         cancelOnError: true,
       );
     }
     _waiting = false;
+    notifyListeners();
+  }
+
+  Future<void> stop() async {
+    await _generation?.cancel();
+    await _channel?.sink.close();
+    _generation = null;
+    _channel = null;
     notifyListeners();
   }
 }
