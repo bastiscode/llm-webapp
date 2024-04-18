@@ -21,6 +21,11 @@ const List<Link> links = [
   ),
 ];
 
+const formatLanguages = [
+  "JSON",
+  "SPARQL"
+];
+
 class Constraint {
   String? regex;
   String? lr1Grammar;
