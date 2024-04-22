@@ -236,13 +236,7 @@ class _HomeViewState extends State<HomeView> {
       IconButton(
         onPressed: canRun
             ? () async {
-                final numOutputs = model.outputs.length;
                 await model.run(model.inputController.text);
-                if ((!model.chatMode && model.outputs.isNotEmpty) ||
-                    (model.chatMode && model.outputs.length > numOutputs)) {
-                  model.inputController.text = "";
-                  model.notifyListeners();
-                }
               }
             : null,
         icon: const Icon(Icons.start),

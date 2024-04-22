@@ -130,6 +130,7 @@ class HomeModel extends BaseModel {
     if (!chatMode) {
       outputs.clear();
     }
+    inputController.clear();
     notifyListeners();
 
     Constraint? ct = constraints[constraint];
