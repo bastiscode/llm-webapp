@@ -2,12 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:convert';
 
 import 'package:webapp/components/message.dart';
 import 'package:webapp/config.dart';
 import 'package:window_location_href/window_location_href.dart' as whref;
+
+class SocketStream {
+  final _socketResponse = StreamController<String>();
+
+  void add(String data) => _socketResponse.sink.add(data);
+
+  Stream<String> get stream => _socketResponse.stream;
+
+  void dispose() {
+    _socketResponse.close();
+  }
+}
 
 class ApiResult<T> {
   int statusCode;
@@ -68,36 +80,34 @@ class ModelOutput {
 }
 
 class Api {
-  late final String _baseURL;
-  late final String _wsBaseURL;
+  late final String _apiURL;
+  late final String _socketURL;
+  late final String _socketPath;
+
   late final String _webBaseURL;
 
   String get webBaseURL => _webBaseURL;
 
   Api._privateConstructor() {
     String? href = whref.href;
-    if (href != null) {
-      if (href.endsWith("/")) {
-        href = href.substring(0, href.length - 1);
-      }
-      String rel = baseURL;
-      if (rel.startsWith("/")) {
-        rel = rel.substring(1);
-      }
-      if (kReleaseMode) {
-        // for release mode use href
-        _baseURL = "$href/$rel";
-        final uri = Uri.parse(_baseURL);
-        _wsBaseURL = "wss://${uri.host}:${uri.port}/$rel";
-      } else {
-        // for local development use localhost
-        _baseURL = "http://localhost:40000/$rel";
-        _wsBaseURL = "ws://localhost:40000/$rel";
-      }
-      _webBaseURL = href;
-    } else {
+    if (href == null) {
       throw UnsupportedError("unknown platform");
     }
+    if (href.endsWith("/")) {
+      href = href.substring(0, href.length - 1);
+    }
+    if (kReleaseMode) {
+      // for release mode use href
+      _apiURL = "$href$apiURL";
+      _socketURL = href;
+      _socketPath = "$apiURL/live";
+    } else {
+      // for local development use localhost
+      _apiURL = "http://localhost:40000";
+      _socketURL = _apiURL;
+      _socketPath = "/live";
+    }
+    _webBaseURL = href;
   }
 
   static final Api _instance = Api._privateConstructor();
@@ -108,7 +118,7 @@ class Api {
 
   Future<ApiResult<List<ModelInfo>>> models() async {
     try {
-      final res = await http.get(Uri.parse("$_baseURL/models"));
+      final res = await http.get(Uri.parse("$_apiURL/models"));
       if (res.statusCode != 200) {
         return ApiResult(
           res.statusCode,
@@ -134,7 +144,7 @@ class Api {
 
   Future<ApiResult<BackendInfo>> info() async {
     try {
-      final res = await http.get(Uri.parse("$_baseURL/info"));
+      final res = await http.get(Uri.parse("$_apiURL/info"));
       if (res.statusCode != 200) {
         return ApiResult(
           res.statusCode,
@@ -155,13 +165,13 @@ class Api {
     }
   }
 
-  Future<WebSocketChannel?> generate(
+  (SocketStream, IO.Socket)? generate(
     String text,
     List<Map<String, String>>? chat,
     String model,
     bool sampling,
     Constraint? constraint,
-  ) async {
+  ) {
     var data = {
       "model": model,
       "sampling_strategy": sampling ? "top_p" : "greedy",
@@ -189,10 +199,26 @@ class Api {
       }
     }
     try {
-      final channel = WebSocketChannel.connect(Uri.parse("$_wsBaseURL/live"));
-      await channel.ready;
-      channel.sink.add(jsonEncode(data));
-      return channel;
+      final socket = IO.io(
+        _socketURL,
+        IO.OptionBuilder()
+            .disableAutoConnect()
+            .setPath(_socketPath)
+            .setReconnectionAttempts(0)
+            .setTransports(["websocket"]).build(),
+      );
+      final stream = SocketStream();
+      socket.onConnect((_) {
+        socket.emit("message", jsonEncode(data));
+      });
+      socket.on("message", (data) {
+        stream.add(data);
+      });
+      socket.onDisconnect((_) {
+        stream.dispose();
+      });
+      socket.connect();
+      return (stream, socket);
     } catch (e) {
       return null;
     }

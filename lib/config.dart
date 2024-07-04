@@ -9,7 +9,7 @@ const String description =
     "Run large language models with arbitrary output constraints.";
 const String lastUpdated = "March 8, 2024";
 
-const String baseURL = "/api";
+const String apiURL = "/api";
 
 // display links to additional resources on the website,
 // will be shown as action chips below the title bar

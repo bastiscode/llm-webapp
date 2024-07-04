@@ -5,8 +5,9 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:socket_io_client/socket_io_client.dart';
 import 'package:webapp/api.dart' as A;
+import 'package:webapp/api.dart';
 import 'package:webapp/base_model.dart';
 import 'package:webapp/components/message.dart';
 import 'package:webapp/components/presets.dart';
@@ -47,10 +48,11 @@ class HomeModel extends BaseModel {
 
   bool get waiting => _waiting;
 
-  WebSocketChannel? _channel;
-  StreamSubscription? _generation;
+  SocketStream? _stream;
+  Socket? _socket;
+  StreamSubscription<String>? _generation;
 
-  bool get generating => _waiting || _generation != null;
+  bool get generating => _waiting || _stream != null;
 
   bool get hasResults => outputs.isNotEmpty;
 
@@ -143,18 +145,21 @@ class HomeModel extends BaseModel {
       );
     }
 
-    _channel = await A.api.generate(
+    final result = await A.api.generate(
       inputString,
       chatMode ? getChat(inputString) : null,
       model!,
       sampling,
       ct,
     );
-    if (_channel == null) {
+    if (result == null) {
       messages.add(Message("failed to get response", Status.error));
     } else {
       bool added = false;
-      _generation = _channel!.stream.listen(
+      final (stream, socket) = result;
+      _stream = stream;
+      _socket = socket;
+      _generation = stream.stream.listen(
         (data) async {
           try {
             final json = jsonDecode(data);
@@ -197,9 +202,11 @@ class HomeModel extends BaseModel {
 
   Future<void> stop() async {
     await _generation?.cancel();
-    await _channel?.sink.close();
+    _stream?.dispose();
+    _socket?.dispose();
     _generation = null;
-    _channel = null;
+    _stream = null;
+    _socket = null;
     notifyListeners();
   }
 }
