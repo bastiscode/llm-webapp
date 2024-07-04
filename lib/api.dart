@@ -174,9 +174,9 @@ class Api {
   ) {
     var data = {
       "model": model,
+      "beam_width": 5,
       "sampling_strategy": sampling ? "top_p" : "greedy",
-      "top_k": 100,
-      "top_p": 0.90
+      "top_p": 0.95
     };
     if (chat == null) {
       data["text"] = text;
