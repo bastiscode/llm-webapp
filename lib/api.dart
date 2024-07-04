@@ -174,7 +174,7 @@ class Api {
   ) {
     var data = {
       "model": model,
-      "beam_width": 5,
+      "beam_width": 1,
       "sampling_strategy": sampling ? "top_p" : "greedy",
       "top_p": 0.95
     };
