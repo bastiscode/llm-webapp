@@ -99,11 +99,12 @@ class _HomeViewState extends State<HomeView> {
           child: Scaffold(
             body: wrapPadding(
               Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   buildHeading(model),
                   const SizedBox(height: 8),
                   if (model.ready && !model.available) ...[
+                    const Spacer(),
                     const Text(
                       "Could not find any models, "
                       "please check your backends and reload.",
@@ -122,7 +123,8 @@ class _HomeViewState extends State<HomeView> {
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text("Reload"),
-                    )
+                    ),
+                    const Spacer()
                   ] else ...[
                     Expanded(child: buildOutputs(model)),
                     const SizedBox(height: 8),
