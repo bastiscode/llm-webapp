@@ -94,35 +94,6 @@ class _HomeViewState extends State<HomeView> {
               ),
             ),
           );
-        } else if (model.ready && !model.available) {
-          return wrapScaffold(
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Could not find any models, "
-                    "please check your backends and reload.",
-                  ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      await model.init(
-                        inputController,
-                        regexController,
-                        grammarController,
-                        lexerController,
-                      );
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text("Reload"),
-                  )
-                ],
-              ),
-            ),
-          );
         }
         return SafeArea(
           child: Scaffold(
@@ -132,9 +103,31 @@ class _HomeViewState extends State<HomeView> {
                 children: [
                   buildHeading(model),
                   const SizedBox(height: 8),
-                  Expanded(child: buildOutputs(model)),
-                  const SizedBox(height: 8),
-                  buildInput(model)
+                  if (model.ready && !model.available) ...[
+                    const Text(
+                      "Could not find any models, "
+                      "please check your backends and reload.",
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await model.init(
+                          inputController,
+                          regexController,
+                          grammarController,
+                          lexerController,
+                        );
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Reload"),
+                    )
+                  ] else ...[
+                    Expanded(child: buildOutputs(model)),
+                    const SizedBox(height: 8),
+                    buildInput(model)
+                  ]
                 ],
               ),
             ),

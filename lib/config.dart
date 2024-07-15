@@ -19,6 +19,11 @@ const List<Link> links = [
     "https://github.com/bastiscode/llm-text-generation",
     icon: FontAwesomeIcons.github,
   ),
+  Link(
+    "Webapp",
+    "https://github.com/bastiscode/llm-webapp",
+    icon: FontAwesomeIcons.github,
+  ),
 ];
 
 final languagePattern = RegExp(r"^(json|sparql)\s");
