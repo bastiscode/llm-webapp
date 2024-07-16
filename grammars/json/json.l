@@ -11,10 +11,6 @@ WS [\x20\t\n\r]+
 
 %%
 
-// custom
-CODE_BLOCK_START    '```json' \x20
-CODE_BLOCK_END      '```'
-
 // JSON terminals
 STRING '"' ({ESC}|{SAFECODEPOINT})* '"'
 NUMBER -?{INT}( '.' [0-9]+)?{EXP}?

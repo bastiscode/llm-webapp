@@ -5,7 +5,6 @@
 
 json
     : value
-    | 'CODE_BLOCK_START' value 'CODE_BLOCK_END'
     ;
 
 obj

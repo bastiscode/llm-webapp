@@ -4,7 +4,6 @@
 
 QueryUnit
     : Query
-    | 'CODE_BLOCK_START' Query 'CODE_BLOCK_END'
     ;
 
 QueryType
